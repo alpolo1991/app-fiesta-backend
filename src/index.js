@@ -3,8 +3,9 @@
  *  FIESTA FIN DE AÑO 2026 - API (Express + better-sqlite3)
  * ============================================================
  *  Arranque:  npm run dev   /   npm start
- *  Variables de entorno (.env): JWT_SECRET, PORT, FRONTEND_URL (lista con
- *  comas), FIESTA_DB_PATH, FIESTA_UPLOADS_DIR, CLOUDINARY_* (ver .env.example)
+ *  Variables de entorno (.env): NODE_ENV (development|production),
+ *  JWT_SECRET, PORT, FRONTEND_URL (lista con comas), FIESTA_DB_PATH,
+ *  FIESTA_UPLOADS_DIR, CLOUDINARY_* (ver .env.example)
  * ============================================================
  */
 require('dotenv').config();
@@ -14,7 +15,8 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 
-const db = require('./db');
+const config = require('./config');
+require('./db'); // inicializa SQLite (efecto lateral)
 const { seed } = require('./seed');
 
 // ---------- Rutas ----------
@@ -33,7 +35,7 @@ const inventarioRoutes = require('./routes/inventario');
 const entregasRoutes = require('./routes/entregas');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = config.PORT;
 
 // Detrás de Render/Vercel hay un proxy: se confía en el primero para que
 // req.ip sea la IP real (clave para el rate-limit).
@@ -41,10 +43,7 @@ app.set('trust proxy', 1);
 
 // ---------- Seguridad / parsing ----------
 // CORS restringido a los frontends (lista separada por comas en FRONTEND_URL)
-const ORIGENES = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+const ORIGENES = config.ORIGENES;
 app.use(
   cors({
     origin: ORIGENES.length === 1 ? ORIGENES[0] : ORIGENES,
@@ -54,8 +53,7 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 
 // Carpeta de subidas en disco (solo modo local; en nube ver src/storage.js)
-const { UPLOAD_DIR } = require('./storage');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
 
 // ---------- Seed automático al primer arranque ----------
 try {
@@ -64,8 +62,26 @@ try {
   console.error('Error en el seed:', e.message);
 }
 
+// Aviso solo en desarrollo: sin JWT_SECRET se usa un valor inseguro.
+if (config.isDev && !process.env.JWT_SECRET) {
+  console.warn('⚠️  Sin JWT_SECRET en .env: usando valor de desarrollo (no usar en producción).');
+}
+
 // ---------- Endpoints ----------
-app.get('/api/salud', (req, res) => res.json({ ok: true, servicio: 'fiesta-api' }));
+// En producción responde mínimo (sin detalles internos); en desarrollo
+// muestra entorno y rutas útiles para depurar.
+app.get('/api/salud', (req, res) => {
+  if (config.isProd) return res.json({ ok: true, servicio: 'fiesta-api' });
+  res.json({
+    ok: true,
+    servicio: 'fiesta-api',
+    env: config.NODE_ENV,
+    url: config.URL_PUBLICA,
+    db: config.DB_PATH,
+    uploads: config.NUBE ? 'cloudinary' : config.UPLOAD_DIR,
+    frontend: config.ORIGENES,
+  });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/recuperaciones', recuperacionesRoutes);
@@ -99,11 +115,26 @@ app.use('/api', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err.message);
   if (res.headersSent) return next(err);
-  res.status(err.status || 500).json({ mensaje: err.message || 'Error interno del servidor.' });
+  const status = err.status || 500;
+  // En producción no se filtran detalles internos en errores 500.
+  const mensaje = status >= 500 && config.isProd ? 'Error interno del servidor.' : err.message || 'Error interno del servidor.';
+  const cuerpo = { mensaje };
+  if (config.isDev) cuerpo.stack = err.stack;
+  res.status(status).json(cuerpo);
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 API escuchando en http://localhost:${PORT}`);
-  console.log(`   Base de datos: ${db.name}`); // ruta real (FIESTA_DB_PATH en pruebas)
-  console.log(`   Subidas:       ${UPLOAD_DIR}`);
+  if (config.isProd) {
+    console.log('✅ API en producción lista');
+    console.log(`   Salud: /api/salud`);
+    return;
+  }
+  if (config.isTest) {
+    console.log(`[test] API en puerto ${PORT}`);
+    return;
+  }
+  console.log(`🚀 API (development) en ${config.URL_PUBLICA}`);
+  console.log(`   Base de datos: ${config.DB_PATH}`);
+  console.log(`   Subidas:       ${config.NUBE ? 'Cloudinary (nube)' : config.UPLOAD_DIR}`);
+  console.log(`   Frontend CORS: ${config.ORIGENES.join(', ')}`);
 });

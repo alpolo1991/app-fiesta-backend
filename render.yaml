@@ -16,6 +16,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24
+      - key: NODE_ENV
+        value: production
       - key: PORT
         value: 4000
       - key: JWT_SECRET

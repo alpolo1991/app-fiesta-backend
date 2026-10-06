@@ -28,7 +28,7 @@ function migrarColumna(tabla, columna, definicion) {
   const columnas = db.prepare(`PRAGMA table_info(${tabla})`).all().map((c) => c.name);
   if (!columnas.includes(columna)) {
     db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
-    console.log(`⚙️  Migración: ${tabla}.${columna}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`⚙️  Migración: ${tabla}.${columna}`);
   }
 }
 

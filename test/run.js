@@ -42,6 +42,7 @@ async function esperarSalud(url, timeoutMs = 20000) {
 function arrancarServidor(temporal) {
   const env = {
     ...process.env,
+    NODE_ENV: 'test',
     PORT: PUERTO,
     JWT_SECRET: 'secreto-de-pruebas',
     FRONTEND_URL: 'http://localhost:5173',

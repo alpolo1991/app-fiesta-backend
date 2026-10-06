@@ -1,0 +1,69 @@
+# AGENTS.md — Backend (API)
+
+Instrucciones para agentes que trabajen en este repositorio.
+
+## Qué es
+
+API de la **fiesta empresarial de fin de año** (Cupo $50.000, abono mínimo
+$20.000): inscripción con soporte de pago en imagen, acompañantes (máx 4),
+encuesta dinámica, inventario, entregas de combo y **dos cajas separadas**
+(inscripción y bebidas), roles ADMIN / MODERADOR / USUARIO. Idioma: español.
+
+## Stack y estructura
+
+Express + better-sqlite3 + JWT + bcrypt + multer + Cloudinary
+(+ express-rate-limit, cors, dotenv). SQLite en archivo.
+
+- `src/schema.sql` → creación idempotente (`IF NOT EXISTS`).
+- `src/db.js` → abre `fiesta.db` (o `FIESTA_DB_PATH`), ejecuta schema + migraciones.
+- `src/seed.js` → siembra si `usuarios` está vacío (`npm run seed`).
+- `src/storage.js` → soportes en Cloudinary (con vars) o disco local.
+- `src/index.js` → routers bajo `/api`, CORS por lista, `trust proxy`, SPA fallback.
+- `src/helpers.js` → `refrescarEstadoPago`, `reservarCombo`, `registrarMovimientoCaja`,
+  `saldoCaja`, `usuarioPublico` (úsalo SIEMPRE al devolver usuarios).
+- `src/middleware/auth.js` → `authRequired` + `requireRole(...)`.
+
+## Comandos
+
+```bash
+npm install
+npm run dev    # :4000 con reload
+npm start      # producción
+npm test       # 6 suites (node test/run.js), BD temporal por suite
+npm run seed   # solo si `usuarios` está vacío
+npm run reset  # BORRA fiesta.db* + uploads y re-siembra
+```
+
+Variables (`cp .env.example .env`): `JWT_SECRET` (obligatorio en prod), `PORT`,
+`FRONTEND_URL` (lista con comas), `FIESTA_DB_PATH` (Render: `/data/fiesta.db`),
+`FIESTA_UPLOADS_DIR`, `CLOUDINARY_*` (sin ellas usa disco local).
+En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
+`FIESTA_TEST_PORT`/`FIESTA_TEST_URL`. **Nunca** apuntes a datos reales.
+
+## Convenciones
+
+- **RBAC siempre en backend**, no solo en frontend.
+- **Acompañantes (máx 4)**: tabla `acompanantes`; monto **fijo** de config (solo
+  admin); suma `saldo_pendiente`; FIFO con base primero (el abonado cubre el
+  cupo y luego acompañantes en orden). Combo por producto
+  (`combo_por_persona`); al pagar el total se **reserva** (`reservarCombo()`,
+  nunca frena dinero). Columnas legacy solo por compatibilidad.
+- Cajas **nunca se suman** y quedan siempre abiertas.
+- Aprobar = transacción (montos + estado + Caja Inscripción); sin
+  auto-aprobación; rechazar exige `comentario`.
+- Ventas (`/:id/salida`, admin/mod) acreditan **Caja Bebidas**; ingresos
+  (`/:id/ingreso`) y **ajustes** (`/:id/ajuste`, motivo obligatorio) solo admin.
+- `/auth/recuperar` idéntico exista o no el email; con email crea solicitud
+  (`GET /recuperaciones`); el reset la marca atendida.
+- Tablas nuevas en `schema.sql` + creación en `db.js`; columnas con
+  `migrarColumna(...)`; el `SELECT` de `authRequired` es explícito.
+
+## Credenciales (seed)
+
+admin `admin@fiesta.com`/`admin123` · moderador `moderador@fiesta.com`/`mod123` ·
+usuario `usuario@fiesta.com`/`user123`.
+
+## Verificación mínima
+
+1. `npm test` → exit 0 (6 suites, BD temporal, requiere `bash`, `curl`, `python3`).
+2. Tras pruebas manuales con BD real: `npm run reset` + reiniciar.

@@ -1,0 +1,34 @@
+# Blueprint de Render: API (Node) + disco persistente para SQLite.
+# Uso: Dashboard → New → Blueprint → conecta este repo.
+# Después configura las Environment Variables (ver .env.example).
+services:
+  - type: web
+    name: fiesta-api
+    runtime: node
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /api/salud
+    autoDeploy: true
+    disk:
+      name: fiesta-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: PORT
+        value: 4000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false # ← pon aquí tu URL de Vercel (o lista con comas)
+      - key: FIESTA_DB_PATH
+        value: /data/fiesta.db
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: fiesta

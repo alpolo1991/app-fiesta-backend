@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# SQLite de desarrollo / pruebas (se regenera con seed/reset)
+fiesta.db
+fiesta.db-*
+*.db-shm
+*.db-wal
+
+# Soportes subidos en disco local (solo se versiona el .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# Secretos y entorno local
+.env
+
+# Logs y sistema
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

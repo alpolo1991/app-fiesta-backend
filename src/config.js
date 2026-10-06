@@ -11,6 +11,9 @@
  * Hoy se usa SQLite vía FIESTA_DB_PATH; cuando exista DATABASE_URL (ej.
  * Postgres/Turso) este será el único archivo a cambiar.
  */
+// dotenv aquí (idempotente): garantiza .env en todos los entrypoints
+// (index, seed, reset), no solo cuando index.js lo carga primero.
+require('dotenv').config();
 const path = require('path');
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -25,16 +28,24 @@ const ORIGENES = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .map((o) => o.trim())
   .filter(Boolean);
 
-// --- Persistencia (fase 2: aquí se elegirá SQLite local vs DB nube) ---
-// Hoy: SQLite en archivo. Futuro: si hay DATABASE_URL se usará esa.
+// --- Persistencia: SQLite local (dev/test) vs Turso (prod) ---
+// Hoy: SQLite en archivo. Nube: Turso vía driver `libsql` (API sync
+// compatible con better-sqlite3, ver src/db.js).
 const DB_PATH =
   process.env.FIESTA_DB_PATH || path.join(__dirname, '..', 'fiesta.db');
-const DATABASE_URL = process.env.DATABASE_URL || null; // reservado fase 2
+const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || null;
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || null;
+// Estricto por entorno, igual que imágenes: dev/test SIEMPRE SQLite local
+// aunque haya vars Turso; solo producción usa Turso (y lo exige).
+const USA_TURSO = isProd && !!TURSO_DATABASE_URL && !!TURSO_AUTH_TOKEN;
+const DB_BACKEND = USA_TURSO ? 'turso' : 'sqlite';
 const UPLOAD_DIR =
   process.env.FIESTA_UPLOADS_DIR || path.join(__dirname, '..', 'uploads');
 
 const NUBE =
-  process.env.CLOUDINARY_ENABLED !== '0' &&
+  // Estricto por entorno: dev/test SIEMPRE en disco aunque haya claves
+  // en .env; solo producción usa Cloudinary (y lo exige, ver index.js).
+  isProd &&
   !!process.env.CLOUDINARY_CLOUD_NAME &&
   !!process.env.CLOUDINARY_API_KEY &&
   !!process.env.CLOUDINARY_API_SECRET;
@@ -52,7 +63,10 @@ module.exports = {
   PORT,
   ORIGENES,
   DB_PATH,
-  DATABASE_URL,
+  TURSO_DATABASE_URL,
+  TURSO_AUTH_TOKEN,
+  USA_TURSO,
+  DB_BACKEND,
   UPLOAD_DIR,
   NUBE,
   URL_PUBLICA,

@@ -48,8 +48,7 @@ function arrancarServidor(temporal) {
     FRONTEND_URL: 'http://localhost:5173',
     FIESTA_DB_PATH: path.join(temporal, 'fiesta.db'),
     FIESTA_UPLOADS_DIR: path.join(temporal, 'uploads'),
-    // Los tests siempre usan disco temporal: nunca tocan Cloudinary.
-    CLOUDINARY_ENABLED: '0',
+    // Los tests (NODE_ENV=test) siempre usan disco temporal: nunca tocan Cloudinary.
   };
   const hijo = spawn(process.execPath, [SERVER], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   hijo.stdout.on('data', (d) => process.stdout.write(`   [server] ${d}`));

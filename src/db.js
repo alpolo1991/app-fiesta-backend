@@ -1,19 +1,46 @@
 /**
- * Conexión a la base de datos SQLite (fiesta.db).
- * - Se crea el archivo automáticamente si no existe.
- * - Se ejecuta el script schema.sql (idempotente: usa IF NOT EXISTS).
- * - Se activan las claves foráneas.
+ * Conexión a la base de datos: SQLite local o Turso (nube).
+ * - development/test → SQLite en archivo (better-sqlite3, sync).
+ * - production con TURSO_* → Turso remoto (driver `libsql`, API sync
+ *   compatible: prepare/get/all/run, transaction, exec).
+ * El resto del código no cambia: la interfaz es la misma.
  */
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+const config = require('./config');
 
-// En pruebas (npm test) se usa una BD temporal vía FIESTA_DB_PATH.
-const DB_PATH = process.env.FIESTA_DB_PATH || path.join(__dirname, '..', 'fiesta.db'); // server/fiesta.db
-
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+let db;
+if (config.USA_TURSO) {
+  const Database = require('libsql');
+  db = new Database(config.TURSO_DATABASE_URL, { authToken: config.TURSO_AUTH_TOKEN });
+  // FK por conexión (best-effort en remoto); journal_mode no aplica en nube.
+  try {
+    db.pragma('foreign_keys = ON');
+  } catch (e) {
+    console.error('Aviso Turso (foreign_keys):', e.message);
+  }
+  // Las filas remotas traen `_metadata` extra: se quita para no filtrarlo
+  // en las respuestas de la API (local no lo tiene).
+  const preparar = db.prepare.bind(db);
+  const limpiar = (fila) => {
+    if (fila && typeof fila === 'object' && '_metadata' in fila) delete fila._metadata;
+    return fila;
+  };
+  db.prepare = (sql) => {
+    const st = preparar(sql);
+    const get = st.get.bind(st);
+    const all = st.all.bind(st);
+    st.get = (...p) => limpiar(get(...p));
+    st.all = (...p) => (all(...p) || []).map(limpiar);
+    return st;
+  };
+} else {
+  const Database = require('better-sqlite3');
+  // En pruebas (npm test) se usa una BD temporal vía FIESTA_DB_PATH.
+  db = new Database(config.DB_PATH);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+}
 
 // Creación de tablas (script SQL entregable)
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');

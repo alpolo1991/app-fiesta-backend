@@ -53,7 +53,7 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 
 // Carpeta de subidas en disco (solo modo local; en nube ver src/storage.js)
-fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
+if (!config.NUBE) fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
 
 // ---------- Seed automático al primer arranque ----------
 try {
@@ -67,6 +67,20 @@ if (config.isDev && !process.env.JWT_SECRET) {
   console.warn('⚠️  Sin JWT_SECRET en .env: usando valor de desarrollo (no usar en producción).');
 }
 
+// Producción exige Cloudinary: sin claves, fallar visible en vez de
+// guardar en disco efímero.
+if (config.isProd && !config.NUBE) {
+  console.error('❌ Producción sin Cloudinary: faltan CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET en Render.');
+  process.exit(1);
+}
+
+// Producción exige Turso: sin URL/token, fallar visible en vez de usar
+// SQLite efímero (se perderían los datos al reiniciar).
+if (config.isProd && !config.USA_TURSO) {
+  console.error('❌ Producción sin Turso: faltan TURSO_DATABASE_URL / TURSO_AUTH_TOKEN en Render.');
+  process.exit(1);
+}
+
 // ---------- Endpoints ----------
 // En producción responde mínimo (sin detalles internos); en desarrollo
 // muestra entorno y rutas útiles para depurar.
@@ -77,7 +91,7 @@ app.get('/api/salud', (req, res) => {
     servicio: 'fiesta-api',
     env: config.NODE_ENV,
     url: config.URL_PUBLICA,
-    db: config.DB_PATH,
+    db: config.DB_BACKEND === 'turso' ? 'turso (nube)' : config.DB_PATH,
     uploads: config.NUBE ? 'cloudinary' : config.UPLOAD_DIR,
     frontend: config.ORIGENES,
   });
@@ -125,7 +139,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   if (config.isProd) {
-    console.log('✅ API en producción lista');
+    console.log('✅ API en producción lista (Turso + Cloudinary)');
     console.log(`   Salud: /api/salud`);
     return;
   }
@@ -134,7 +148,7 @@ app.listen(PORT, () => {
     return;
   }
   console.log(`🚀 API (development) en ${config.URL_PUBLICA}`);
-  console.log(`   Base de datos: ${config.DB_PATH}`);
+  console.log(`   Base de datos: ${config.DB_BACKEND === 'turso' ? 'turso (nube)' : `${config.DB_PATH} (SQLite local)`}`);
   console.log(`   Subidas:       ${config.NUBE ? 'Cloudinary (nube)' : config.UPLOAD_DIR}`);
   console.log(`   Frontend CORS: ${config.ORIGENES.join(', ')}`);
 });

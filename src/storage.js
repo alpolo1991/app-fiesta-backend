@@ -1,10 +1,9 @@
 /**
  * Almacenamiento de soportes de pago: Cloudinary o disco local.
  *
- * - Si hay CLOUDINARY_CLOUD_NAME + API_KEY + API_SECRET → nube (multer en
- *   memoria, se sube con upload_stream). Ideal para Render/Vercel.
- * - Si no → disco local en server/uploads (desarrollo y pruebas).
- *   En pruebas se usa FIESTA_UPLOADS_DIR.
+ * Regla estricta por entorno (ver src/config.js):
+ * - development/test → SIEMPRE disco local (aunque haya claves en .env).
+ * - production       → Cloudinary (exigido: sin claves la API no arranca).
  *
  * En la BD se guarda el `public_id` de Cloudinary o el nombre de archivo
  * local (ambos sin barras: a salvo de path traversal).
@@ -13,7 +12,8 @@ const path = require('path');
 const fs = require('fs');
 
 const NUBE =
-  process.env.CLOUDINARY_ENABLED !== '0' &&
+  // Estricto por entorno: solo producción usa la nube.
+  process.env.NODE_ENV === 'production' &&
   !!process.env.CLOUDINARY_CLOUD_NAME &&
   !!process.env.CLOUDINARY_API_KEY &&
   !!process.env.CLOUDINARY_API_SECRET;

@@ -61,12 +61,22 @@ router.get(
          ORDER BY a.usuario_id, a.id`
       )
       .all(...params);
-    // Flag pagado por dueño (FIFO): se agrupa por usuario en orden.
-    const porDueno = {};
+    // Flag pagado por dueño (FIFO con base primero, igual que helpers):
+    // solo el excedente sobre la inscripción paga acompañantes, en orden.
+    const base = montoInscripcion();
+    const estadoPorDueno = {};
     const lista = filas.map((f) => {
-      const cub = porDueno[f.usuario_id] || 0;
-      const pagado = Number(f.dueno_abonado || 0) >= cub + Number(f.monto);
-      porDueno[f.usuario_id] = cub + Number(f.monto);
+      if (!estadoPorDueno[f.usuario_id]) {
+        estadoPorDueno[f.usuario_id] = {
+          disponible: Math.max(0, Number(f.dueno_abonado || 0) - base),
+          cubierto: 0,
+          bloqueado: false,
+        };
+      }
+      const st = estadoPorDueno[f.usuario_id];
+      const pagado = !st.bloqueado && st.disponible >= st.cubierto + Number(f.monto);
+      if (pagado) st.cubierto += Number(f.monto);
+      else st.bloqueado = true;
       const { dueno_abonado, ...resto } = f;
       return { ...resto, pagado };
     });

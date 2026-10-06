@@ -66,6 +66,16 @@ check "1 pagado → 2 personas, 6 cervezas" '"requerido": 6' "$(echo "$COMBO2" |
 check "1 pagado → 2 comidas" '"requerido": 2' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Comida'][0]))")"
 check "flag pagado en lista" '"pagado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/mios | tr -d ' ')"
 
+echo "=== A5b. Recién agregado tras pagar base NO queda pagado (admin) ==="
+REG_N=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Nuevo E2E","cedula":"777888999","email":"nuevoacompa@e2e.com","password":"secret123","whatsapp":"3007778889"}')
+TOKEN_N=$(echo "$REG_N" | json "d['token']")
+ID_N=$(echo "$REG_N" | json "d['usuario']['id']")
+curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$ID_N/abono >/dev/null
+curl -s -X POST -H "Authorization: Bearer $TOKEN_N" -H 'Content-Type: application/json' -d '{"nombre":"Hijo Nuevo"}' $API/acompanantes >/dev/null
+check "admin ve recién agregado como no pagado" '"pagado":false' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/acompanantes?usuario_id=$ID_N" | tr -d ' ')"
+curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$ID_N/abono >/dev/null
+check "tras pagarlo admin lo ve pagado" '"pagado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/acompanantes?usuario_id=$ID_N" | tr -d ' ')"
+
 echo "=== A6. Baja ==="
 A1_ID=$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/mios | python3 -c "import sys,json;print([a['id'] for a in json.load(sys.stdin)['lista'] if a['nombre']=='Anita Prueba'][0])")
 check "eliminar pagado → 400" "ya está pagado" "$(curl -s -X DELETE -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/$A1_ID)"
@@ -75,10 +85,10 @@ check "otro usuario no elimina ajeno → 403" "permisos" "$(curl -s -X DELETE -H
 
 echo "=== A7. KPIs y reportes ==="
 RES=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/dashboard/resumen)
-check "KPI acompañantes: 1 por 50000" '"acompanantes":{"cantidad":1,"total":50000}' "$RES"
-check "1 confirmado × 50000" '"acompanantesConfirmados": 1' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
+check "KPI acompañantes: 2 por 100000" '"acompanantes":{"cantidad":2,"total":100000}' "$RES"
+check "2 confirmados × 100000" '"acompanantesConfirmados": 2' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
 check "0 por cobrar" '"montoAcompanantesPorCobrar": 0' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
-check "personal incluye acompañantes" '"acompanantes":1' "$RES"
+check "personal incluye acompañantes" '"acompanantes":2' "$RES"
 TODAS=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/acompanantes)
 check "admin ve todos" '"usuario_nombre"' "$TODAS"
 CSV=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/soportes-pago/exportar?estado=todas")

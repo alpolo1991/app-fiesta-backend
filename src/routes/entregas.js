@@ -3,7 +3,8 @@
  * - GET  /usuario/:id          → combo por producto de un usuario
  * - GET  /pendientes           → admin/mod: todos (incluye staff) con progreso
  * - POST /                     → admin/mod: entregar producto del combo o venta extra
- * - POST /:usuario_id/completar → admin/mod: marcar combo como completado
+ * - POST /:usuario_id/completar → admin/mod: confirmar combo (solo si ya está
+ *   todo entregado; la UI ya no lo usa, el auto-marcado va en POST /)
  *
  * El combo se define por producto (inventario.combo_por_persona) y se
  * multiplica por personas (1 + acompañantes pagados; staff = 1).
@@ -222,7 +223,8 @@ router.post(
 );
 
 // ---------------------------------------------------------
-// Completar combo manualmente
+// Confirmar combo (la UI ya no lo usa: el completado es automático en POST /).
+// Solo confirma si todo lo requerido ya fue entregado; nunca fuerza incompletos.
 // ---------------------------------------------------------
 router.post(
   '/:usuario_id/completar',
@@ -239,9 +241,18 @@ router.post(
       });
     }
 
+    // Sin forzar: si aún faltan productos, se rechaza con el pendiente.
+    const estado = comboEstado(id);
+    const faltan = (estado?.items || []).reduce((acc, i) => acc + Number(i.faltante || 0), 0);
+    if (!estado?.completado) {
+      return res.status(400).json({
+        mensaje: `Aún faltan ${faltan} producto(s) del combo de ${usuario.nombre} por entregar.`,
+      });
+    }
+
     db.prepare('UPDATE usuarios SET combo_completado = 1 WHERE id = ?').run(id);
     res.json({
-      mensaje: `Combo de ${usuario.nombre} marcado como completado.`,
+      mensaje: `Combo de ${usuario.nombre} confirmado como entregado.`,
       usuario: usuarioPublico(db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id)),
     });
   })

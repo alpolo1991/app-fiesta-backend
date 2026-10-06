@@ -52,7 +52,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   nunca frena dinero). Columnas legacy solo por compatibilidad.
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y
   `POST /entregas/:id/completar` exigen `estado_pago === 'pagado'` en rol
-  usuario (staff exento); `venta_extra` no se bloquea.
+  usuario (staff exento); `venta_extra` no se bloquea. El completar solo
+  confirma si todo ya fue entregado, nunca fuerza incompletos (la UI ya no
+  lo usa, el auto-marcado va en `POST /`).
 - Cajas **nunca se suman** y quedan siempre abiertas.
 - Aprobar = transacción (montos + estado + Caja Inscripción); sin
   auto-aprobación; rechazar exige `comentario`.

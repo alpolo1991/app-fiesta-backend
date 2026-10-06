@@ -139,6 +139,13 @@ router.post(
 
     // El combo solo entrega productos del combo y hasta lo requerido por persona.
     if (tipo === 'combo') {
+      // Regla estricta: solo usuarios con inscripción totalmente pagada reclaman combo.
+      // El staff (admin/moderador) está exento porque no paga inscripción.
+      if (usuario.rol === 'usuario' && usuario.estado_pago !== 'pagado') {
+        return res.status(400).json({
+          mensaje: `${usuario.nombre} no tiene el pago de la inscripción confirmado (estado: ${usuario.estado_pago}). Confirma el pago total antes de entregar el combo.`,
+        });
+      }
       if (!Number(inv.combo_por_persona)) {
         return res.status(400).json({ mensaje: `"${inv.producto}" no forma parte del combo.` });
       }
@@ -224,6 +231,13 @@ router.post(
     const id = Number(req.params.usuario_id);
     const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+    // Regla estricta: no completar combo sin pago total (staff exento).
+    if (usuario.rol === 'usuario' && usuario.estado_pago !== 'pagado') {
+      return res.status(400).json({
+        mensaje: `${usuario.nombre} no tiene el pago de la inscripción confirmado (estado: ${usuario.estado_pago}). Confirma el pago total antes de completar el combo.`,
+      });
+    }
 
     db.prepare('UPDATE usuarios SET combo_completado = 1 WHERE id = ?').run(id);
     res.json({

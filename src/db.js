@@ -82,7 +82,7 @@ try {
   /* tabla recién creada, nada que migrar */
 }
 
-// Tabla de acompañantes (múltiples por usuario, máx 4).
+// Tabla de acompañantes (máx 1 por usuario).
 // Migra el acompañante único legacy (columnas de usuarios) una sola vez.
 try {
   db.exec(
@@ -123,6 +123,7 @@ try {
 // Se insertan vacías/por defecto sin pisar valores ya personalizados.
 const CONFIG_DEFAULTS = {
   monto_acompanante: '50000',
+  monto_inscripcion: '50000',
   nombre_admin: 'Administrador',
   nombre_moderador: 'Moderador',
   hora_evento: '19:00',
@@ -166,6 +167,14 @@ try {
 // el usuario ya pagó su parte (abonado acumulado cubre sus montos, en orden).
 // Nivela una sola vez las filas que ya cumplen la condición (solo aumenta).
 try {
+  const baseInscripcion = (() => {
+    try {
+      const f = db.prepare("SELECT valor FROM configuracion WHERE clave = 'monto_inscripcion'").get();
+      const n = Number(f && f.valor);
+      if (!isNaN(n) && n > 0) return Math.round(n);
+    } catch (e) { /* tabla aún no creada */ }
+    return 50000;
+  })();
   const usuarios = db
     .prepare(
       `SELECT u.id, u.monto_abonado, u.combo_cervezas_asignadas, u.combo_comidas_asignadas,
@@ -176,7 +185,7 @@ try {
     .all();
   const pagadosDe = (uid, abonado) => {
     const filas = db.prepare('SELECT monto FROM acompanantes WHERE usuario_id = ? ORDER BY id').all(uid);
-    const disponible = Math.max(0, Number(abonado || 0) - 50000); // base primero
+    const disponible = Math.max(0, Number(abonado || 0) - baseInscripcion); // base primero
     let cubierto = 0;
     let k = 0;
     for (const f of filas) {
@@ -216,9 +225,17 @@ try {
     )
     .all();
   const comboProds = db.prepare('SELECT id, producto, combo_por_persona FROM inventario WHERE combo_por_persona > 0 ORDER BY id').all();
+  const baseInscripcion2 = (() => {
+    try {
+      const f = db.prepare("SELECT valor FROM configuracion WHERE clave = 'monto_inscripcion'").get();
+      const n = Number(f && f.valor);
+      if (!isNaN(n) && n > 0) return Math.round(n);
+    } catch (e) { /* tabla aún no creada */ }
+    return 50000;
+  })();
   const pagadosDe = (uid, abonado) => {
     const filas = db.prepare('SELECT monto FROM acompanantes WHERE usuario_id = ? ORDER BY id').all(uid);
-    const disponible = Math.max(0, Number(abonado || 0) - 50000); // base primero
+    const disponible = Math.max(0, Number(abonado || 0) - baseInscripcion2); // base primero
     let cubierto = 0;
     let k = 0;
     for (const f of filas) {

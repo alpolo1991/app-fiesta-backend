@@ -9,7 +9,7 @@ const db = require('./db');
 /** Envuelve un handler async para pasar errores al middleware de errores de Express. */
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** Cupo total de la fiesta por persona. */
+/** Cupo total de la fiesta por persona (default; configurable vía `monto_inscripcion`). */
 const CUPO_TOTAL = 50000;
 /** Abono mínimo permitido. */
 const ABONO_MINIMO = 20000;
@@ -206,17 +206,30 @@ function montoAcompanante() {
   return 50000;
 }
 
-/** Cupo total de un usuario incluyendo sus acompañantes (máx 4). */
+/** Monto de inscripción por usuario (configurable por admin, default 50000). */
+function montoInscripcion() {
+  try {
+    const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'monto_inscripcion'").get();
+    const n = Number(fila && fila.valor);
+    if (!isNaN(n) && n > 0) return Math.round(n);
+  } catch (e) {
+    /* tabla aún no creada */
+  }
+  return CUPO_TOTAL;
+}
+
+/** Cupo total de un usuario incluyendo sus acompañantes (máx 1). */
 function totalCupo(usuario) {
-  if (!usuario || usuario.id === undefined) return CUPO_TOTAL + Number((usuario && usuario.acompanante_monto) || 0);
+  const base = montoInscripcion();
+  if (!usuario || usuario.id === undefined) return base + Number((usuario && usuario.acompanante_monto) || 0);
   const fila = db
     .prepare('SELECT COALESCE(SUM(monto), 0) AS total FROM acompanantes WHERE usuario_id = ?')
     .get(usuario.id);
-  return CUPO_TOTAL + Number(fila.total || 0);
+  return base + Number(fila.total || 0);
 }
 
 /** Máximo de acompañantes por usuario. */
-const MAX_ACOMPANANTES = 4;
+const MAX_ACOMPANANTES = 1;
 
 /** Lista de acompañantes de un usuario + conteo y total. */
 function acompanantesDe(usuarioId) {
@@ -235,7 +248,8 @@ function acompanantesDe(usuarioId) {
 function acompanantesPagados(usuarioId, montoAbonado) {
   const { lista } = acompanantesDe(usuarioId);
   let cubierto = 0;
-  const disponible = Math.max(0, Number(montoAbonado || 0) - CUPO_TOTAL);
+  const base = montoInscripcion();
+  const disponible = Math.max(0, Number(montoAbonado || 0) - base);
   let bloqueado = false;
   const conFlag = lista.map((a) => {
     const pagado = !bloqueado && disponible >= cubierto + Number(a.monto);
@@ -281,6 +295,7 @@ module.exports = {
   COMBO_COMIDAS,
   MAX_ACOMPANANTES,
   montoAcompanante,
+  montoInscripcion,
   acompanantesDe,
   acompanantesPagados,
   estadoPorMontos,

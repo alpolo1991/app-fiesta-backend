@@ -50,6 +50,7 @@ function seed() {
     insertConfig.run('nombre_admin', 'Administrador');
     insertConfig.run('nombre_moderador', 'Moderador');
     insertConfig.run('monto_acompanante', '50000');
+    insertConfig.run('monto_inscripcion', '50000');
     insertConfig.run('nombre_evento', 'Fiesta Fin de Año 2026');
     insertConfig.run('lugar_evento', 'Por definir');
     insertConfig.run('fecha_evento', '');
@@ -86,7 +87,7 @@ function seed() {
 
     const p3 = insertPregunta.run('¿Vas a llevar acompañante?', 'si_no', 0, 1, 3).lastInsertRowid;
     ['Sí', 'No'].forEach((t, i) => insertOpcion.run(p3, t, i));
-    // Los acompañantes se gestionan en el menú Acompañantes (máx 4 por usuario),
+    // Los acompañantes se gestionan en el menú Acompañantes (máx 1 por usuario),
     // ya no en la encuesta: esta pregunta queda como una más.
 
     const p4 = insertPregunta.run('¿Cuál es tu música preferida?', 'multiple', 3, 1, 4).lastInsertRowid;

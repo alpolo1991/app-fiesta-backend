@@ -2,7 +2,7 @@
  * /api/acompanantes
  * - GET    /mios  → mis acompañantes (cualquier rol ve los suyos)
  * - GET    /      → admin/mod: todos, con datos del usuario
- * - POST   /      → usuario: agrega uno (máx 4, monto fijo de configuración)
+ * - POST   /      → usuario: agrega uno (máx 1, monto fijo de configuración)
  * - DELETE /:id   → el dueño (si aún no está pagado) o admin
  *
  * El precio es fijo (config monto_acompanante) y solo lo modifica el admin.
@@ -13,7 +13,7 @@ const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
 const {
   ah,
-  CUPO_TOTAL,
+  montoInscripcion,
   montoAcompanante,
   acompanantesDe,
   acompanantesPagados,
@@ -94,11 +94,11 @@ router.post(
     }
 
     const actual = acompanantesDe(req.user.id);
-    if (actual.cantidad >= MAX_ACOMPANANTES) {
-      return res.status(400).json({ mensaje: `Máximo ${MAX_ACOMPANANTES} acompañantes por usuario.` });
-    }
     if (actual.lista.some((a) => a.nombre.toLowerCase() === nombre.toLowerCase())) {
       return res.status(409).json({ mensaje: 'Ese acompañante ya está registrado.' });
+    }
+    if (actual.cantidad >= MAX_ACOMPANANTES) {
+      return res.status(400).json({ mensaje: `Máximo ${MAX_ACOMPANANTES} acompañantes por usuario.` });
     }
 
     const monto = montoAcompanante();
@@ -182,7 +182,7 @@ router.delete(
       db.prepare('DELETE FROM acompanantes WHERE id = ?').run(id);
       const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(a.usuario_id);
       const restante = db.prepare('SELECT COALESCE(SUM(monto), 0) AS suma FROM acompanantes WHERE usuario_id = ?').get(a.usuario_id).suma;
-      const nuevoSaldo = Math.max(0, CUPO_TOTAL + Number(restante || 0) - Number(u.monto_abonado));
+      const nuevoSaldo = Math.max(0, montoInscripcion() + Number(restante || 0) - Number(u.monto_abonado));
       db.prepare('UPDATE usuarios SET saldo_pendiente = ? WHERE id = ?').run(nuevoSaldo, a.usuario_id);
       refrescarEstadoPago(a.usuario_id);
     });

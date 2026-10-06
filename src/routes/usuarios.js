@@ -9,7 +9,7 @@ const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
 const {
   ah,
-  CUPO_TOTAL,
+  montoInscripcion,
   ABONO_MINIMO,
   refrescarEstadoPago,
   reservarCombo,
@@ -369,7 +369,7 @@ router.put(
       const actual = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
       const nAcomp = db.prepare('SELECT COUNT(*) AS n FROM acompanantes WHERE usuario_id = ?').get(id).n;
       if (Number(actual.monto_abonado) === 0 && Number(actual.saldo_pendiente) === 0 && !nAcomp) {
-        db.prepare('UPDATE usuarios SET saldo_pendiente = ? WHERE id = ?').run(CUPO_TOTAL, id);
+        db.prepare('UPDATE usuarios SET saldo_pendiente = ? WHERE id = ?').run(montoInscripcion(), id);
         refrescarEstadoPago(id);
       }
     } else {

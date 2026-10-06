@@ -72,6 +72,10 @@ router.put(
         const n = Number(s);
         return Number.isInteger(n) && n >= 1000 && n <= 1000000 ? null : 'El monto debe ser un entero entre 1000 y 1000000.';
       },
+      monto_inscripcion: (s) => {
+        const n = Number(s);
+        return Number.isInteger(n) && n >= 1000 && n <= 1000000 ? null : 'El monto debe ser un entero entre 1000 y 1000000.';
+      },
       nombre_evento: (s) => (s.trim() && s.trim().length <= 120 ? null : 'El nombre del evento es obligatorio (máx 120).'),
       lugar_evento: (s) => (s.trim().length <= 120 ? null : 'El lugar no puede superar 120 caracteres.'),
       fecha_evento: (s) => (s === '' || /^\d{4}-\d{2}-\d{2}$/.test(s) ? null : 'La fecha debe ser YYYY-MM-DD o vacía.'),

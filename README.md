@@ -1,7 +1,8 @@
 # 🎉 Fiesta Fin de Año 2026 — Backend (API)
 
-API de gestión de fiesta empresarial: inscripción y pagos con soporte en
-imagen, acompañantes, encuesta dinámica, inventario, entregas de combo y dos
+API de gestión de fiesta empresarial: inscripción (monto configurable por admin,
+default $50.000) y pagos con soporte en imagen, acompañantes (máx 1),
+encuesta dinámica, inventario, entregas de combo solo con pago confirmado y dos
 cajas separadas, con roles ADMIN / MODERADOR / USUARIO.
 
 > Repo independiente del frontend. Despliegue: **Render** (`render.yaml`).
@@ -60,8 +61,9 @@ Sin las 3 de Cloudinary usa disco local (`uploads/`).
 ## 📡 Endpoints (base `/api`)
 
 Auth: `POST /auth/registro|login|recuperar|cambiar-password` ·
-Usuarios (RBAC) · Acompañantes (máx 4) · Recuperaciones (staff) ·
+Usuarios (RBAC) · Acompañantes (máx 1) · Recuperaciones (staff) ·
 Soportes de pago (imagen 1 MB + CSV) · Cuentas de pago (+QR) ·
 Cajas (inscripción/bebidas, siempre abiertas) · Encuesta (+resumen y CSV) ·
-Inventario (+ventas, ajuste, reserva de combos) · Entregas · Configuración
-(+contactos públicos) · Dashboard (KPIs + ganancias).
+Inventario (+ventas, ajuste, reserva de combos) · Entregas (combo solo `pagado`) ·
+Configuración (`monto_inscripcion`, `monto_acompanante` + contactos públicos) ·
+Dashboard (KPIs + ganancias).

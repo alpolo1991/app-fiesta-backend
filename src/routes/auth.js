@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const db = require('../db');
 const { firmarToken, authRequired } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
-const { ah, usuarioPublico, CUPO_TOTAL } = require('../helpers');
+const { ah, usuarioPublico, montoInscripcion } = require('../helpers');
 
 const router = express.Router();
 
@@ -69,7 +69,7 @@ router.post(
         `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente)
          VALUES (?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?)`
       )
-      .run(nom, ced, mail, password_hash, w, CUPO_TOTAL);
+      .run(nom, ced, mail, password_hash, w, montoInscripcion());
 
     const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
     const token = firmarToken(usuario);

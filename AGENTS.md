@@ -4,8 +4,9 @@ Instrucciones para agentes que trabajen en este repositorio.
 
 ## Qué es
 
-API de la **fiesta empresarial de fin de año** (Cupo $50.000, abono mínimo
-$20.000): inscripción con soporte de pago en imagen, acompañantes (máx 4),
+API de la **fiesta empresarial de fin de año** (inscripción configurable,
+default $50.000 con clave `monto_inscripcion`, abono mínimo $20.000):
+inscripción con soporte de pago en imagen, acompañantes (máx 1),
 encuesta dinámica, inventario, entregas de combo y **dos cajas separadas**
 (inscripción y bebidas), roles ADMIN / MODERADOR / USUARIO. Idioma: español.
 
@@ -43,11 +44,15 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 ## Convenciones
 
 - **RBAC siempre en backend**, no solo en frontend.
-- **Acompañantes (máx 4)**: tabla `acompanantes`; monto **fijo** de config (solo
-  admin); suma `saldo_pendiente`; FIFO con base primero (el abonado cubre el
-  cupo y luego acompañantes en orden). Combo por producto
+- **Acompañantes (máx 1)**: tabla `acompanantes`; montos **fijos** de config
+  (`monto_inscripcion` usuario + `monto_acompanante` acompañante, solo admin,
+  default 50000); suma `saldo_pendiente`; FIFO con base primero (el abonado
+  cubre la inscripción y luego al acompañante). Combo por producto
   (`combo_por_persona`); al pagar el total se **reserva** (`reservarCombo()`,
   nunca frena dinero). Columnas legacy solo por compatibilidad.
+- **Entregas estrictas**: `POST /entregas` tipo `combo` y
+  `POST /entregas/:id/completar` exigen `estado_pago === 'pagado'` en rol
+  usuario (staff exento); `venta_extra` no se bloquea.
 - Cajas **nunca se suman** y quedan siempre abiertas.
 - Aprobar = transacción (montos + estado + Caja Inscripción); sin
   auto-aprobación; rechazar exige `comentario`.

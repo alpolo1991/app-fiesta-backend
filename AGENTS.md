@@ -18,6 +18,8 @@ Express + better-sqlite3 + JWT + bcrypt + multer + Cloudinary
 - `src/schema.sql` → creación idempotente (`IF NOT EXISTS`).
 - `src/db.js` → abre `fiesta.db` (o `FIESTA_DB_PATH`), ejecuta schema + migraciones.
 - `src/seed.js` → siembra si `usuarios` está vacío (`npm run seed`).
+  Al arrancar (`src/index.js`) corre solo y deja log: siembra o
+  `Seed omitido: ya hay N usuario(s), datos intactos` (nunca borra).
 - `src/storage.js` → soportes en Cloudinary (con vars) o disco local.
 - `src/index.js` → routers bajo `/api`, CORS por lista, `trust proxy`, SPA fallback.
 - `src/helpers.js` → `refrescarEstadoPago`, `reservarCombo`, `registrarMovimientoCaja`,

@@ -78,7 +78,7 @@ router.put(
       },
       tamano_max_imagen_mb: (s) => {
         const n = Number(s);
-        return !isNaN(n) && n >= 0.5 && n <= 3 ? null : 'El tamaño debe estar entre 0.5 y 3 MB.';
+        return !isNaN(n) && n > 0 && n <= 3 ? null : 'El tamaño debe ser mayor a 0 y hasta 3 MB.';
       },
       nombre_evento: (s) => (s.trim() && s.trim().length <= 120 ? null : 'El nombre del evento es obligatorio (máx 120).'),
       lugar_evento: (s) => (s.trim().length <= 120 ? null : 'El lugar no puede superar 120 caracteres.'),

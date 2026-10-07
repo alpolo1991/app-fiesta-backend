@@ -60,7 +60,7 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   auto-aprobación; rechazar exige `comentario`.
 - Ventas (`/:id/salida`, admin/mod) acreditan **Caja Bebidas**; ingresos
   (`/:id/ingreso`) y **ajustes** (`/:id/ajuste`, motivo obligatorio) solo admin.
-- **Imágenes**: `tamano_max_imagen_mb` (solo admin, 0.5–3, default 1);
+- **Imágenes**: `tamano_max_imagen_mb` (solo admin, hasta 3 MB, default 1);
   multer corta en 3 MB absolutos y la ruta valida el configurado
   (`soportes-pago` y `cuentas-pago/qr`); mensajes con la etiqueta vigente.
 - `/auth/recuperar` idéntico exista o no el email; con email crea solicitud

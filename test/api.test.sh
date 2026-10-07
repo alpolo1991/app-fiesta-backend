@@ -207,9 +207,10 @@ REG_IMG=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json'
 TOKEN_IMG=$(echo "$REG_IMG" | json "d['token']")
 head -c 600000 /dev/urandom > "$TMP/medio.png"
 check "default 1 MB rechaza 1.2 MB" "máximo permitido de 1 MB" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/grande2.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"
-check "tamano 5 → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"5"}' $API/configuracion/tamano_max_imagen_mb)"
-check "tamano 0.2 → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"0.2"}' $API/configuracion/tamano_max_imagen_mb)"
-check "tamano abc → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"abc"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano 5 → 400" "hasta 3 MB" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"5"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano 0 → 400" "hasta 3 MB" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"0"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano abc → 400" "hasta 3 MB" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"abc"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano 0.2 → 200 (sin piso de 0.5)" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"0.2"}' $API/configuracion/tamano_max_imagen_mb | tr '[:upper:]' '[:lower:]')"
 check "mod NO edita tamano → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d '{"valor":"2"}' $API/configuracion/tamano_max_imagen_mb)"
 check "admin fija 3 MB" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"3"}' $API/configuracion/tamano_max_imagen_mb | tr '[:upper:]' '[:lower:]')"
 check "con 3 MB acepta 1.2 MB" "pendiente" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/grande2.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"

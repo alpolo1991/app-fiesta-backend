@@ -11,9 +11,8 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
 
 /** Cupo total de la fiesta por persona (default; configurable vía `monto_inscripcion`). */
 const CUPO_TOTAL = 50000;
-/** Tamaño máximo de imagen configurable (MB): default 1, rango 0.5–3. */
+/** Tamaño máximo de imagen configurable (MB): default 1, hasta 3. */
 const TAMANO_MAX_IMAGEN_MB_DEFAULT = 1;
-const TAMANO_MAX_IMAGEN_MB_MIN = 0.5;
 const TAMANO_MAX_IMAGEN_MB_MAX = 3;
 /** Abono mínimo permitido. */
 const ABONO_MINIMO = 20000;
@@ -222,12 +221,12 @@ function montoInscripcion() {
   return CUPO_TOTAL;
 }
 
-/** Tamaño máximo de imagen en MB (configurable por admin, default 1, rango 0.5–3). */
+/** Tamaño máximo de imagen en MB (configurable por admin, default 1, hasta 3). */
 function tamanoMaxImagenMB() {
   try {
     const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'tamano_max_imagen_mb'").get();
     const n = Number(fila && fila.valor);
-    if (!isNaN(n) && n >= TAMANO_MAX_IMAGEN_MB_MIN && n <= TAMANO_MAX_IMAGEN_MB_MAX) return n;
+    if (!isNaN(n) && n > 0 && n <= TAMANO_MAX_IMAGEN_MB_MAX) return n;
   } catch (e) {
     /* tabla aún no creada */
   }
@@ -323,7 +322,6 @@ module.exports = {
   montoAcompanante,
   montoInscripcion,
   TAMANO_MAX_IMAGEN_MB_DEFAULT,
-  TAMANO_MAX_IMAGEN_MB_MIN,
   TAMANO_MAX_IMAGEN_MB_MAX,
   tamanoMaxImagenMB,
   tamanoMaxImagenBytes,

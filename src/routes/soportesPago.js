@@ -1,6 +1,6 @@
 /**
  * /api/soportes-pago
- * - POST /                     → usuario sube soporte (multipart, máx 1 MB, jpg/png/webp)
+ * - POST /                     → usuario sube soporte (multipart jpg/png/webp, tamaño configurable 0.5–3 MB)
  * - GET  /mios                 → usuario: sus soportes
  * - GET  /                     → admin/mod: pendientes (o ?estado=todas)
  * - PUT  /:id/aprobar          → admin/mod: actualiza saldo y registra movimiento en Caja Inscripción
@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
-const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, reservarCombo, dineroCol } = require('../helpers');
+const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, reservarCombo, dineroCol, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
 const { NUBE, UPLOAD_DIR, subirANube, urlDeNube, borrarDeNube, borrarLocal } = require('../storage');
 
 const router = express.Router();
@@ -32,10 +32,12 @@ const storageDisco = multer.diskStorage({
 
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
 
-// Solo imágenes, máximo 1 MB. En nube se guarda en memoria y se sube tras validar.
+// Solo imágenes. Multer corta en el techo absoluto (3 MB) y el límite
+// configurable del admin (0.5–3 MB) se valida tras la subida con mensaje claro.
+// En nube se guarda en memoria y se sube tras validar.
 const upload = multer({
   storage: NUBE ? multer.memoryStorage() : storageDisco,
-  limits: { fileSize: 1024 * 1024 },
+  limits: { fileSize: TAMANO_MAX_IMAGEN_MB_MAX * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (MIME[ext] && ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) return cb(null, true);
@@ -62,9 +64,14 @@ router.post(
       if (err) {
         const msg =
           err.code === 'LIMIT_FILE_SIZE'
-            ? 'El archivo supera el máximo permitido de 1 MB.'
+            ? `El archivo supera el máximo absoluto de ${TAMANO_MAX_IMAGEN_MB_MAX} MB.`
             : err.message || 'Error al subir el archivo.';
         return res.status(400).json({ mensaje: msg });
+      }
+      // Límite configurable por el admin (default 1 MB).
+      if (req.file && req.file.size > tamanoMaxImagenBytes()) {
+        if (!NUBE && req.file.filename) borrarLocal(req.file.filename);
+        return res.status(400).json({ mensaje: `El archivo supera el máximo permitido de ${etiquetaTamanoMax()}.` });
       }
       next();
     });

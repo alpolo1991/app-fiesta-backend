@@ -3,7 +3,7 @@
  * - GET  /          → cualquier usuario logueado (para el modal de pago)
  * - PUT  /:id       → SOLO admin (número, titular, activa, orden)
  * - GET  /:id/qr    → logueado: imagen QR para pagar por QR
- * - PUT  /:id/qr    → SOLO admin: sube/cambia el QR (jpg/png/webp, máx 1 MB)
+ * - PUT  /:id/qr    → SOLO admin: sube/cambia el QR (jpg/png/webp, tamaño configurable)
  * - DELETE /:id/qr  → SOLO admin: quita el QR
  */
 const express = require('express');
@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
-const { ah } = require('../helpers');
+const { ah, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
 const { NUBE, UPLOAD_DIR, subirANube, urlDeNube, borrarDeNube, borrarLocal } = require('../storage');
 
 const router = express.Router();
@@ -31,7 +31,7 @@ const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
 
 const upload = multer({
   storage: NUBE ? multer.memoryStorage() : storageDisco,
-  limits: { fileSize: 1024 * 1024 },
+  limits: { fileSize: TAMANO_MAX_IMAGEN_MB_MAX * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (MIME[ext] && ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) return cb(null, true);
@@ -127,9 +127,14 @@ router.put(
       if (err) {
         const msg =
           err.code === 'LIMIT_FILE_SIZE'
-            ? 'El archivo supera el máximo permitido de 1 MB.'
+            ? `El archivo supera el máximo absoluto de ${TAMANO_MAX_IMAGEN_MB_MAX} MB.`
             : err.message || 'Error al subir el archivo.';
         return res.status(400).json({ mensaje: msg });
+      }
+      // Límite configurable por el admin (default 1 MB).
+      if (req.file && req.file.size > tamanoMaxImagenBytes()) {
+        if (!NUBE && req.file.filename) borrarLocal(req.file.filename);
+        return res.status(400).json({ mensaje: `El archivo supera el máximo permitido de ${etiquetaTamanoMax()}.` });
       }
       next();
     });

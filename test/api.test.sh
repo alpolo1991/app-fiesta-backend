@@ -202,6 +202,21 @@ check "usuario ve SU combo sin password_hash" '"items"' "$(curl -s -H "Authoriza
 check "respuesta no filtra password_hash" "no_password_hash" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/entregas/usuario/$UID_USER | grep -c password_hash | sed 's/0/no_password_hash/')"
 check "venta extra genera ingreso en caja bebidas" 'Venta extra' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID_USER,\"inventario_id\":$GAS_ID,\"cantidad\":1,\"tipo\":\"venta_extra\"}" $API/entregas >/dev/null; curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/bebidas/movimientos)"
 
+echo "=== 13b. Tamaño máx de imagen configurable (solo admin, 0.5–3 MB) ==="
+REG_IMG=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Imagen E2E","cedula":"777666555","email":"imagen@e2e.com","password":"secret123","whatsapp":"3007776665"}')
+TOKEN_IMG=$(echo "$REG_IMG" | json "d['token']")
+head -c 600000 /dev/urandom > "$TMP/medio.png"
+check "default 1 MB rechaza 1.2 MB" "máximo permitido de 1 MB" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/grande2.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"
+check "tamano 5 → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"5"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano 0.2 → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"0.2"}' $API/configuracion/tamano_max_imagen_mb)"
+check "tamano abc → 400" "entre 0.5 y 3" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"abc"}' $API/configuracion/tamano_max_imagen_mb)"
+check "mod NO edita tamano → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d '{"valor":"2"}' $API/configuracion/tamano_max_imagen_mb)"
+check "admin fija 3 MB" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"3"}' $API/configuracion/tamano_max_imagen_mb | tr '[:upper:]' '[:lower:]')"
+check "con 3 MB acepta 1.2 MB" "pendiente" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/grande2.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"
+check "admin fija 0.5 MB" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"0.5"}' $API/configuracion/tamano_max_imagen_mb | tr '[:upper:]' '[:lower:]')"
+check "con 0.5 MB rechaza 600 KB" "máximo permitido de 0.5 MB" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/medio.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"
+check "admin restaura 1 MB" '"valor": "1"' "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"1"}' $API/configuracion/tamano_max_imagen_mb | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)))")"
+
 echo "=== 14. Configuración y dashboard ==="
 check "admin edita config" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"3133506369"}' $API/configuracion/whatsapp_admin)"
 check "config trae contacto admin/mod" '"nombre_admin"' "$(curl -s $API/configuracion)"

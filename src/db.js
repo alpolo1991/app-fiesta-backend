@@ -124,6 +124,7 @@ try {
 const CONFIG_DEFAULTS = {
   monto_acompanante: '50000',
   monto_inscripcion: '50000',
+  tamano_max_imagen_mb: '1',
   nombre_admin: 'Administrador',
   nombre_moderador: 'Moderador',
   hora_evento: '19:00',

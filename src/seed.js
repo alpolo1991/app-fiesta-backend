@@ -51,6 +51,7 @@ function seed() {
     insertConfig.run('nombre_moderador', 'Moderador');
     insertConfig.run('monto_acompanante', '50000');
     insertConfig.run('monto_inscripcion', '50000');
+    insertConfig.run('tamano_max_imagen_mb', '1');
     insertConfig.run('nombre_evento', 'Fiesta Fin de Año 2026');
     insertConfig.run('lugar_evento', 'Por definir');
     insertConfig.run('fecha_evento', '');

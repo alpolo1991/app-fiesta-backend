@@ -16,7 +16,7 @@ const express = require('express');
 const cors = require('cors');
 
 const config = require('./config');
-require('./db'); // inicializa SQLite (efecto lateral)
+const db = require('./db'); // inicializa SQLite (efecto lateral)
 const { seed } = require('./seed');
 
 // ---------- Rutas ----------
@@ -56,8 +56,14 @@ app.use(express.json({ limit: '1mb' }));
 if (!config.NUBE) fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
 
 // ---------- Seed automático al primer arranque ----------
+// Solo siembra con la BD vacía (seed.js verifica `usuarios`); si ya hay
+// datos no toca nada.
 try {
-  seed();
+  const sembro = seed();
+  if (!sembro) {
+    const n = db.prepare('SELECT COUNT(*) AS n FROM usuarios').get().n;
+    console.log(`ℹ️  Seed omitido: ya hay ${n} usuario(s), datos intactos.`);
+  }
 } catch (e) {
   console.error('Error en el seed:', e.message);
 }

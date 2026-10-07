@@ -62,7 +62,7 @@ Sin las 3 de Cloudinary usa disco local (`uploads/`).
 
 Auth: `POST /auth/registro|login|recuperar|cambiar-password` ·
 Usuarios (RBAC) · Acompañantes (máx 1) · Recuperaciones (staff) ·
-Soportes de pago (imagen jpg/png/webp, tamaño configurable 0.5–3 MB, default 1 MB + CSV) · Cuentas de pago (+QR) ·
+Soportes de pago (imagen jpg/png/webp, tamaño configurable hasta 3 MB, default 1 MB + CSV) · Cuentas de pago (+QR) ·
 Cajas (inscripción/bebidas, siempre abiertas) · Encuesta (+resumen y CSV) ·
 Inventario (+ventas, ajuste, reserva de combos) · Entregas (combo solo `pagado`) ·
 Configuración (`monto_inscripcion`, `monto_acompanante` + contactos públicos) ·

@@ -16,7 +16,7 @@ json() { python3 -c "import sys,json;d=json.load(sys.stdin);print(eval(sys.argv[
 
 echo "=== 1. Login (usuario se registra) ==="
 TA=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
-TM=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com","password":"mod123"}' | json "d['token']")
+TM=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 REGU=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario Inv","cedula":"333444555","email":"inv@e2e.com","password":"user123","whatsapp":"3003334445"}')
 TU=$(echo "$REGU" | json "d['token']")
 [ -n "$TA" ] && check "login admin" OK OK || check "login admin" token "$TA"
@@ -89,7 +89,7 @@ echo "=== 10. Nuevas validaciones caja-stock ==="
 check "entrega cantidad 0 → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$COMIDA,\"cantidad\":0,\"tipo\":\"venta_extra\"}" $API/entregas)"
 check "entrega cantidad texto → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$COMIDA,\"cantidad\":\"abc\",\"tipo\":\"venta_extra\"}" $API/entregas)"
 check "pendientes incluye staff con su combo (trazabilidad)" 'admin@fiesta.com' "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/pendientes)"
-check "pendientes: 3 usuarios + staff" "5 False" "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/pendientes | python3 -c "import sys,json;ds=json.load(sys.stdin);print(len(ds), any(u['email']=='nadie@e2e.com' for u in ds))")"
+check "pendientes: 2 usuarios + staff" "5 False" "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/pendientes | python3 -c "import sys,json;ds=json.load(sys.stdin);print(len(ds), any(u['email']=='nadie@e2e.com' for u in ds))")"
 check "combos staff en dashboard" '"combosStaff"' "$(curl -s -H "Authorization: Bearer $TA" $API/dashboard/resumen)"
 check "cortesía sin motivo → 400" "cortesía" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0}' $API/inventario/$COMIDA/salida)"
 check "cortesía con motivo → 201" "Venta registrada" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0,"motivo":"premio barra"}' $API/inventario/$COMIDA/salida)"

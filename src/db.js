@@ -156,7 +156,7 @@ const CONFIG_DEFAULTS = {
   monto_inscripcion: '50000',
   tamano_max_imagen_mb: '1',
   nombre_admin: 'Administrador',
-  nombre_moderador: 'Moderador',
+  nombre_moderador: 'Edwin Roa',
   hora_evento: '19:00',
 };
 try {

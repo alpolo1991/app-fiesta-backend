@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Flujo completo end-to-end con todo el elenco:
-# admin + moderador + 2 usuarios + 3 acompañantes (2 de uno, 1 del otro).
+# admin + moderador + 2 usuarios + 2 acompañantes (1 de cada uno).
 # Verifica persistencia cruzada: saldos, caja, combos, CSV, fichas y KPIs.
 set -u
 API="${FIESTA_TEST_URL:-http://localhost:4000/api}"
@@ -22,7 +22,7 @@ json() { python3 -c "import sys,json;d=json.load(sys.stdin);print(eval(sys.argv[
 echo "=== F1. Elenco ==="
 TA=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
 TOKEN_ADMIN=$TA
-TM=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com","password":"mod123"}' | json "d['token']")
+TM=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 TOKEN_MOD=$TM
 TU1=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario Uno","cedula":"111222333","email":"uno@e2e.com","password":"user123","whatsapp":"3001112223"}' | json "d['token']")
 [ -n "$TA" ] && check "login admin" "OK" "OK" || check "login admin" "token" "$TA"
@@ -85,8 +85,8 @@ echo "=== F4. Persistencia cruzada: caja, KPIs, CSV, ficha ==="
 CI=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/inscripcion/movimientos)
 check "caja inscripción = 100000+100000" '"saldo":200000' "$CI"
 RES=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/dashboard/resumen)
-check "personal = 3 usuarios + 2 acompañantes" '"total":5' "$RES"
-check "por cobrar = 50000 (usuario demo)" '"porCobrar":50000' "$RES"
+check "personal = 2 usuarios + 2 acompañantes" '"total":4' "$RES"
+check "por cobrar = 0 (sin usuario demo)" '"porCobrar":0' "$RES"
 check "recaudado = 200000" '"recaudado":200000' "$RES"
 check "ganancias total = 200000" '"total": 200000' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
 check "2 inscripciones confirmadas" '"inscripcionesConfirmadas": 2' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"

@@ -1,10 +1,10 @@
 /**
- * Seed inicial: admin, moderador y un usuario normal de prueba.
+ * Seed inicial: admin y dos moderadores (acceso del equipo).
  *   npm run seed   (también se ejecuta solo desde src/index.js)
  *
- * Crea: admin/mod (sin cargo), usuario demo (cupo $50.000), cajas abiertas,
- * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
- * inventario demo del combo (cerveza ×4, comida ×1).
+ * Crea: admin + 2 mods (sin cargo), cajas abiertas, cuentas de pago,
+ * configuración base, preguntas iniciales (catálogo) e inventario demo
+ * del combo (cerveza ×4, comida ×1).
  */
 const db = require('./db');
 const bcrypt = require('bcrypt');
@@ -14,7 +14,7 @@ function seed() {
   if (yaHayUsuarios) return false;
 
   const tx = db.transaction(() => {
-    // ---------- 1. Solo admin y moderador (saldo 0: sin cargo) ----------
+    // ---------- 1. Equipo inicial (saldo 0: sin cargo) ----------
     const hash = (pwd) => bcrypt.hashSync(pwd, 10);
     const crypto = require('crypto');
     const insertUsuario = db.prepare(`
@@ -22,12 +22,8 @@ function seed() {
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
     `);
     insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
-    insertUsuario.run(crypto.randomUUID(), 'Moderador', '1000000002', 'moderador@fiesta.com', hash('mod123'), 'moderador', '3133506369');
-    // Usuario normal de prueba (cupo completo por pagar).
-    db.prepare(
-      `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
-       VALUES (?, ?, ?, ?, ?, 'usuario', ?, 0, 50000)`
-    ).run(crypto.randomUUID(), 'Empleado Ejemplo', '1000000003', 'usuario@fiesta.com', hash('user123'), '3133506369');
+    insertUsuario.run(crypto.randomUUID(), 'Edwin Roa', '1000000004', 'roaruizedwinyesid@gmail.com', hash('roa123'), 'moderador', '3165362315');
+    insertUsuario.run(crypto.randomUUID(), 'Isaac Fontalvo', '1000000005', 'isaacfontalvo@gmail.com', hash('isaac123'), 'moderador', '3042246759');
 
     // ---------- 2. Cajas (siempre abiertas al inicio) ----------
     const insertCaja = db.prepare('INSERT INTO cajas (tipo, descripcion, estado) VALUES (?, ?, ?)');
@@ -47,9 +43,9 @@ function seed() {
       'INSERT INTO configuracion (clave, valor) VALUES (?, ?) ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor'
     );
     insertConfig.run('whatsapp_admin', '3133506369');
-    insertConfig.run('whatsapp_moderador', '3133506369');
+    insertConfig.run('whatsapp_moderador', '3165362315');
     insertConfig.run('nombre_admin', 'Administrador');
-    insertConfig.run('nombre_moderador', 'Moderador');
+    insertConfig.run('nombre_moderador', 'Edwin Roa');
     insertConfig.run('monto_acompanante', '50000');
     insertConfig.run('monto_inscripcion', '50000');
     insertConfig.run('tamano_max_imagen_mb', '1');

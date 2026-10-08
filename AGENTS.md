@@ -85,8 +85,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 
 ## Credenciales (seed)
 
-admin `admin@fiesta.com`/`admin123` · moderador `moderador@fiesta.com`/`mod123` ·
-usuario `usuario@fiesta.com`/`user123`.
+admin `admin@fiesta.com`/`admin123` · Edwin Roa
+`roaruizedwinyesid@gmail.com`/`roa123` (mod) · Isaac Fontalvo
+`isaacfontalvo@gmail.com`/`isaac123` (mod).
 
 ## Verificación mínima
 

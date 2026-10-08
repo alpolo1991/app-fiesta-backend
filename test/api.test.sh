@@ -25,7 +25,7 @@ check "GET /configuracion tiene whatsapp_admin" 'whatsapp_admin' "$(curl -s $API
 
 echo "=== 2. Login de los 3 roles (usuario se registra) ==="
 TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
-TOKEN_MOD=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com","password":"mod123"}' | json "d['token']")
+TOKEN_MOD=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 REGU=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario E2E","cedula":"111222333","email":"usuario@e2e.com","password":"user123","whatsapp":"3001112223"}')
 TOKEN_USER=$(echo "$REGU" | json "d['token']")
 UID_USER=$(echo "$REGU" | json "d['usuario']['id']")

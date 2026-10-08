@@ -62,12 +62,12 @@ check "whatsapp inválido en perfil → 400" "solo dígitos" "$(curl -s -X PUT -
 
 echo "=== U6. Admin edita datos de usuarios ==="
 check "sin token → 401" "Sesión no iniciada" "$(curl -s -X PUT $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"nombre":"X"}')"
-TOKEN_MOD2=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com","password":"mod123"}' | json "d['token']")
+TOKEN_MOD2=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 check "moderador → 403" "permisos" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD2" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"nombre":"Otro Nombre"}')"
 check "nombre corto → 400" "entre 3 y 80" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"nombre":"Al"}')"
 check "cédula inválida → 400" "solo dígitos" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"cedula":"abc"}')"
 check "cédula duplicada → 409" "ya está registrada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"cedula":"1000000001"}')"
-check "email duplicado → 409" "ya está en uso" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com"}')"
+check "email duplicado → 409" "ya está en uso" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com"}')"
 check "sin datos → 400" "No hay datos" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{}')"
 check "inexistente → 404" "no encontrado" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" -X PUT $API/usuarios/99999 -H 'Content-Type: application/json' -d '{"nombre":"Nadie"}' | tr '[:upper:]' '[:lower:]')"
 check "edición válida" "Usuario actualizado" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID -H 'Content-Type: application/json' -d '{"nombre":"Auth Editado","whatsapp":"3001112233"}')"
@@ -80,7 +80,7 @@ curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"em
 check "repetida no duplica" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/recuperaciones)"
 curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"nadie@e2e.com"}' >/dev/null
 check "inexistente no crea solicitud" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/recuperaciones)"
-curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"moderador@fiesta.com"}' >/dev/null
+curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com"}' >/dev/null
 check "mod ve la de usuarios pero no la de staff" 'auth@e2e.com' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD2" $API/recuperaciones)"
 check "mod ve solo 1 (oculta la del staff)" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD2" $API/recuperaciones)"
 TOKEN_U=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"auth@e2e.com","password":"otra123456"}' | json "d['token']")

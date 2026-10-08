@@ -168,6 +168,16 @@ check "uuid del cliente se ignora" '"uuid-ignorado": false' "$(curl -s -X POST -
 ID_MAN=$(echo "$REG_MAN" | json "d['usuario']['id']")
 curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d "{\"uuid\":\"11111111-1111-1111-1111-111111111111\"}" $API/usuarios/$ID_MAN >/dev/null
 check "PUT no cambia uuid" "$UUID_MAN" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$ID_MAN | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario']['uuid'])")"
+echo "=== 9c. Cédula opcional con código interno 900… ==="
+REG_SINCED=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Sin Cedula Uno","email":"sinced1@e2e.com","password":"secret123","whatsapp":"3001112223"}')
+check "registro sin cédula → 201" '"token"' "$REG_SINCED"
+CED1=$(echo "$REG_SINCED" | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario']['cedula'])")
+check "código 900… asignado" "900" "$CED1"
+REG_SINCED2=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Sin Cedula Dos","email":"sinced2@e2e.com","password":"secret123","whatsapp":"3001112224"}')
+CED2=$(echo "$REG_SINCED2" | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario']['cedula'])")
+check "segundo código consecutivo distinto" "OK" "$([ "$CED1" != "$CED2" ] && [ -n "$CED2" ] && echo OK || echo "iguales: $CED1/$CED2")"
+check "manual sin cédula → 201" "900" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"Sin Cedula Manual","email":"sinced3@e2e.com","whatsapp":"3001112225"}' $API/usuarios | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario']['cedula'])")"
+check "cédula inválida sigue 400" "solo dígitos" "$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Mala Cedula","cedula":"abc","email":"malaced@e2e.com","password":"secret123","whatsapp":"3001112226"}')"
 
 echo "=== 10. Abono manual admin ==="
 E2E_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='prueba@e2e.com'][0])")

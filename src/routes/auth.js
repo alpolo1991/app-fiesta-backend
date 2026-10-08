@@ -11,7 +11,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { firmarToken, authRequired } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
-const { ah, usuarioPublico, montoInscripcion } = require('../helpers');
+const { ah, usuarioPublico, montoInscripcion, siguienteCodigoSinCedula } = require('../helpers');
 
 const router = express.Router();
 
@@ -31,8 +31,8 @@ router.post(
   authLimiter,
   ah(async (req, res) => {
     const { nombre, cedula, email, password, whatsapp } = req.body || {};
-    if (!nombre || !cedula || !email || !password) {
-      return res.status(400).json({ mensaje: 'Nombre, cédula, email y contraseña son obligatorios.' });
+    if (!nombre || !email || !password) {
+      return res.status(400).json({ mensaje: 'Nombre, email y contraseña son obligatorios.' });
     }
     // El WhatsApp es obligatorio: vincula avisos por WhatsApp (pagos, claves, soporte).
     const wRaw = String(whatsapp || '').trim();
@@ -44,12 +44,13 @@ router.post(
       return res.status(400).json({ mensaje: 'El WhatsApp debe tener solo dígitos (7 a 15).' });
     }
     const nom = String(nombre).trim();
-    const ced = String(cedula).trim();
+    // Cédula opcional: si no la informan se asigna un código interno 900….
+    let ced = String(cedula || '').trim();
     const mail = String(email).trim().toLowerCase();
     if (nom.length < NOMBRE_MIN || nom.length > NOMBRE_MAX) {
       return res.status(400).json({ mensaje: `El nombre debe tener entre ${NOMBRE_MIN} y ${NOMBRE_MAX} caracteres.` });
     }
-    if (!CEDULA_RE.test(ced)) {
+    if (ced && !CEDULA_RE.test(ced)) {
       return res.status(400).json({ mensaje: 'La cédula debe tener solo dígitos (6 a 12).' });
     }
     if (!esEmail(mail) || mail.length > EMAIL_MAX) {
@@ -60,11 +61,15 @@ router.post(
       return res.status(400).json({ mensaje: `La contraseña debe tener entre ${PASS_MIN} y ${PASS_MAX} caracteres.` });
     }
 
-    // Unicidad de cédula y email
-    const existe = db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail);
+    // Unicidad: email siempre; cédula solo si la informó.
+    const existe = ced
+      ? db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail)
+      : db.prepare('SELECT id FROM usuarios WHERE email = ?').get(mail);
     if (existe) return res.status(409).json({ mensaje: 'La cédula o el email ya están registrados.' });
 
     const password_hash = await bcrypt.hash(String(password), 10);
+    // Sección síncrona: asignar código + insertar sin awaits intermedios.
+    if (!ced) ced = siguienteCodigoSinCedula();
     // El UUID lo genera el servidor: lo que mande el cliente se ignora.
     const info = db
       .prepare(

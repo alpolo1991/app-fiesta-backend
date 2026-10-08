@@ -72,6 +72,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 - Registro manual `POST /usuarios` (admin y moderador): mismos datos y
   validaciones que `/auth/registro`, sin pedir clave (genera temporal,
   cambiarla al ingresar) y la devuelve una sola vez para compartirla.
+- Cédula opcional: si no la informan se asigna código interno consecutivo
+  `900…` (`siguienteCodigoSinCedula()`); con valor se valida y chequea
+  duplicado. El email sigue siendo la llave antiduplicados.
 - UUID (`usuarios.uuid`, UNIQUE): lo genera el servidor al crear; lo que
   mande el cliente se ignora y ningún `PUT` lo modifica (ficha solo lectura).
 - Tablas nuevas en `schema.sql` + creación en `db.js`; columnas con

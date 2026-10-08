@@ -11,6 +11,21 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
 
 /** Cupo total de la fiesta por persona (default; configurable vía `monto_inscripcion`). */
 const CUPO_TOTAL = 50000;
+/** Base de la serie de códigos internos (900…) para quien no informa cédula. */
+const CODIGO_SIN_CEDULA_BASE = 900000000;
+
+/**
+ * Siguiente código interno consecutivo para quien no informa cédula.
+ * Llamar justo antes del INSERT (sección síncrona) para evitar duplicados.
+ */
+function siguienteCodigoSinCedula() {
+  const fila = db
+    .prepare("SELECT MAX(CAST(cedula AS INTEGER)) AS m FROM usuarios WHERE cedula GLOB '900[0-9]*'")
+    .get();
+  const max = Number(fila && fila.m) || CODIGO_SIN_CEDULA_BASE;
+  return String(Math.max(max, CODIGO_SIN_CEDULA_BASE) + 1);
+}
+
 /** Tamaño máximo de imagen configurable (MB): default 1, hasta 3. */
 const TAMANO_MAX_IMAGEN_MB_DEFAULT = 1;
 const TAMANO_MAX_IMAGEN_MB_MAX = 3;
@@ -323,6 +338,8 @@ module.exports = {
   montoInscripcion,
   TAMANO_MAX_IMAGEN_MB_DEFAULT,
   TAMANO_MAX_IMAGEN_MB_MAX,
+  CODIGO_SIN_CEDULA_BASE,
+  siguienteCodigoSinCedula,
   tamanoMaxImagenMB,
   tamanoMaxImagenBytes,
   etiquetaTamanoMax,

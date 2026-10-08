@@ -19,6 +19,7 @@ const {
   usuarioPublico,
   totalCupo,
   textoRespuesta,
+  siguienteCodigoSinCedula,
 } = require('../helpers');
 
 const router = express.Router();
@@ -111,17 +112,18 @@ router.post(
   requireRole('admin', 'moderador'),
   ah(async (req, res) => {
     const { nombre, cedula, email, whatsapp } = req.body || {};
-    if (!nombre || !cedula || !email || !whatsapp) {
-      return res.status(400).json({ mensaje: 'Nombre, cédula, email y WhatsApp son obligatorios.' });
+    if (!nombre || !email || !whatsapp) {
+      return res.status(400).json({ mensaje: 'Nombre, email y WhatsApp son obligatorios.' });
     }
     const nom = String(nombre).trim();
-    const ced = String(cedula).trim();
+    // Cédula opcional: si no la informan se asigna un código interno 900….
+    let ced = String(cedula || '').trim();
     const mail = String(email).trim().toLowerCase();
     const w = String(whatsapp).trim().replace(/\D/g, '');
     if (nom.length < 3 || nom.length > 80) {
       return res.status(400).json({ mensaje: 'El nombre debe tener entre 3 y 80 caracteres.' });
     }
-    if (!/^\d{6,12}$/.test(ced)) {
+    if (ced && !/^\d{6,12}$/.test(ced)) {
       return res.status(400).json({ mensaje: 'La cédula debe tener solo dígitos (6 a 12).' });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) || mail.length > 120) {
@@ -130,11 +132,16 @@ router.post(
     if (!/^\d{7,15}$/.test(w)) {
       return res.status(400).json({ mensaje: 'El WhatsApp debe tener solo dígitos (7 a 15).' });
     }
-    const existe = db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail);
+    // Unicidad: email siempre; cédula solo si la informó.
+    const existe = ced
+      ? db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail)
+      : db.prepare('SELECT id FROM usuarios WHERE email = ?').get(mail);
     if (existe) return res.status(409).json({ mensaje: 'La cédula o el email ya están registrados.' });
 
     const temporal = passwordTemporal();
     const password_hash = await bcrypt.hash(temporal, 10);
+    // Sección síncrona: asignar código + insertar sin awaits intermedios.
+    if (!ced) ced = siguienteCodigoSinCedula();
     // El UUID lo genera el servidor: lo que mande el cliente se ignora.
     const info = db
       .prepare(

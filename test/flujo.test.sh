@@ -85,8 +85,8 @@ echo "=== F4. Persistencia cruzada: caja, KPIs, CSV, ficha ==="
 CI=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/inscripcion/movimientos)
 check "caja inscripción = 100000+100000" '"saldo":200000' "$CI"
 RES=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/dashboard/resumen)
-check "personal = 2 usuarios + 2 acompañantes" '"total":4' "$RES"
-check "por cobrar = 0 (sin usuario demo)" '"porCobrar":0' "$RES"
+check "personal = 3 usuarios + 2 acompañantes" '"total":5' "$RES"
+check "por cobrar = 50000 (usuario demo)" '"porCobrar":50000' "$RES"
 check "recaudado = 200000" '"recaudado":200000' "$RES"
 check "ganancias total = 200000" '"total": 200000' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
 check "2 inscripciones confirmadas" '"inscripcionesConfirmadas": 2' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"

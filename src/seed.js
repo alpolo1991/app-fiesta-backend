@@ -1,10 +1,10 @@
 /**
- * Seed inicial: admin y dos moderadores (acceso del equipo).
+ * Seed inicial: admin, dos moderadores y un usuario demo (validaciones).
  *   npm run seed   (también se ejecuta solo desde src/index.js)
  *
- * Crea: admin + 2 mods (sin cargo), cajas abiertas, cuentas de pago,
- * configuración base, preguntas iniciales (catálogo) e inventario demo
- * del combo (cerveza ×4, comida ×1).
+ * Crea: admin + 2 mods (sin cargo) + demo (cupo por pagar), cajas abiertas,
+ * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
+ * inventario demo del combo (cerveza ×4, comida ×1).
  */
 const db = require('./db');
 const bcrypt = require('bcrypt');
@@ -24,6 +24,11 @@ function seed() {
     insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
     insertUsuario.run(crypto.randomUUID(), 'Edwin Roa', '1000000004', 'roaruizedwinyesid@gmail.com', hash('roa123'), 'moderador', '3165362315');
     insertUsuario.run(crypto.randomUUID(), 'Isaac Fontalvo', '1000000005', 'isaacfontalvo@gmail.com', hash('isaac123'), 'moderador', '3042246759');
+    // Usuario demo para validaciones (en producción se elimina desde Usuarios).
+    db.prepare(
+      `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
+       VALUES (?, ?, ?, ?, ?, 'usuario', ?, 0, 50000)`
+    ).run(crypto.randomUUID(), 'Usuario Demo', '1000000003', 'demo@fiesta.com', hash('demo123'), '3133506369');
 
     // ---------- 2. Cajas (siempre abiertas al inicio) ----------
     const insertCaja = db.prepare('INSERT INTO cajas (tipo, descripcion, estado) VALUES (?, ?, ?)');

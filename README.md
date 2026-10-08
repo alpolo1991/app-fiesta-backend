@@ -32,8 +32,8 @@ npm run reset # BORRA fiesta.db* + uploads y re-siembran desde cero
 
 Seed: admin (`admin@fiesta.com`/`admin123`), Edwin Roa
 (`roaruizedwinyesid@gmail.com`/`roa123`, mod), Isaac Fontalvo
-(`isaacfontalvo@gmail.com`/`isaac123`, mod), cajas abiertas,
-cuentas de pago, configuración, preguntas e inventario demo.
+(`isaacfontalvo@gmail.com`/`isaac123`, mod), demo (`demo@fiesta.com`/`demo123`,
+se elimina en producción), cajas abiertas, cuentas de pago, configuración, preguntas e inventario demo.
 
 ## 🔑 Variables (`cp .env.example .env`)
 

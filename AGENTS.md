@@ -87,7 +87,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 
 admin `admin@fiesta.com`/`admin123` · Edwin Roa
 `roaruizedwinyesid@gmail.com`/`roa123` (mod) · Isaac Fontalvo
-`isaacfontalvo@gmail.com`/`isaac123` (mod).
+`isaacfontalvo@gmail.com`/`isaac123` (mod) · demo
+`demo@fiesta.com`/`demo123` (se elimina en producción).
 
 ## Verificación mínima
 

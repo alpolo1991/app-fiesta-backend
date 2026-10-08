@@ -248,6 +248,16 @@ check "admin fija 0.5 MB" "actualizada" "$(curl -s -X PUT -H "Authorization: Bea
 check "con 0.5 MB rechaza 600 KB" "máximo permitido de 0.5 MB" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_IMG" -F "archivo=@$TMP/medio.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)"
 check "admin restaura 1 MB" '"valor": "1"' "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"1"}' $API/configuracion/tamano_max_imagen_mb | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)))")"
 
+echo "=== 13c. Staff sube soporte por el usuario ==="
+ID_IMG=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='imagen@e2e.com'][0])")
+SOP_STAFF=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=$ID_IMG" $API/soportes-pago)
+check "mod sube por usuario → 201 pendiente" '"estado": "pendiente"' "$(echo "$SOP_STAFF" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['soporte']))")"
+check "dueño correcto" "\"usuario_id\": $ID_IMG" "$(echo "$SOP_STAFF" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['soporte']))")"
+check "usuario NO sube por otro → 403" "otro usuario" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=$ID_IMG" $API/soportes-pago | tr '[:upper:]' '[:lower:]')"
+check "monto sobre saldo del dueño → 400" "supera" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=999999" -F "tipo=abono" -F "usuario_id=$ID_IMG" $API/soportes-pago)"
+check "usuario inexistente → 400" "no encontrado" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=999999" $API/soportes-pago | tr '[:upper:]' '[:lower:]')"
+check "para staff → 400" "solo se suben" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=2" $API/soportes-pago | tr '[:upper:]' '[:lower:]')"
+
 echo "=== 14. Configuración y dashboard ==="
 check "admin edita config" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"3133506369"}' $API/configuracion/whatsapp_admin)"
 check "config trae contacto admin/mod" '"nombre_admin"' "$(curl -s $API/configuracion)"

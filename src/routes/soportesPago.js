@@ -55,7 +55,8 @@ async function borrarSubido(archivo) {
 }
 
 // ---------------------------------------------------------
-// Subir soporte (usuario)
+// Subir soporte (usuario; admin/mod pueden subir por otro usuario
+// con `usuario_id`: queda pendiente igual que si lo subiera él)
 // ---------------------------------------------------------
 router.post(
   '/',
@@ -81,13 +82,26 @@ router.post(
 
     const monto = Number((req.body || {}).monto);
     const tipo = (req.body && req.body.tipo) || 'abono';
-    const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.user.id);
     // En nube el archivo está en memoria: se sube solo si pasa las validaciones.
     const nombreTemporal = NUBE ? null : req.file.filename;
     const fallar = async (mensaje) => {
       await borrarSubido(nombreTemporal);
       return res.status(400).json({ mensaje });
     };
+
+    // Dueño del soporte: uno mismo, o (solo staff) el usuario indicado.
+    const pedidoPara = (req.body && req.body.usuario_id !== undefined && req.body.usuario_id !== null && req.body.usuario_id !== '')
+      ? Number(req.body.usuario_id)
+      : req.user.id;
+    if (!Number.isInteger(pedidoPara)) return fallar('usuario_id inválido.');
+    if (pedidoPara !== req.user.id && !['admin', 'moderador'].includes(req.user.rol)) {
+      return res.status(403).json({ mensaje: 'No tienes permisos para subir soportes de otro usuario.' });
+    }
+    const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(pedidoPara);
+    if (!usuario) return fallar('Usuario no encontrado.');
+    if (pedidoPara !== req.user.id && usuario.rol !== 'usuario') {
+      return fallar('Solo se suben soportes de usuarios.');
+    }
 
     if (!['abono', 'pago_total'].includes(tipo)) {
       return fallar('Tipo de soporte inválido.');
@@ -100,11 +114,11 @@ router.post(
     const montoFinal = tipo === 'pago_total' ? usuario.saldo_pendiente : monto;
 
     if (montoFinal <= 0) {
-      return fallar('No tienes saldo pendiente por pagar.');
+      return fallar('No hay saldo pendiente por pagar.');
     }
 
     if (montoFinal > usuario.saldo_pendiente) {
-      return fallar('El monto reportado supera tu saldo pendiente.');
+      return fallar('El monto reportado supera el saldo pendiente.');
     }
     if (tipo === 'abono' && montoFinal < ABONO_MINIMO && montoFinal < usuario.saldo_pendiente) {
       return fallar(`El abono mínimo es $${ABONO_MINIMO.toLocaleString('es-CO')}.`);
@@ -122,7 +136,7 @@ router.post(
         `INSERT INTO soportes_pago (usuario_id, archivo, monto_reportado, tipo, estado)
          VALUES (?, ?, ?, ?, 'pendiente')`
       )
-      .run(req.user.id, archivo, montoFinal, tipo);
+      .run(usuario.id, archivo, montoFinal, tipo);
 
     const soporte = db.prepare('SELECT * FROM soportes_pago WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({

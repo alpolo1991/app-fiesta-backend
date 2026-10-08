@@ -60,6 +60,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 - Cajas **nunca se suman** y quedan siempre abiertas.
 - Aprobar = transacción (montos + estado + Caja Inscripción); sin
   auto-aprobación; rechazar exige `comentario`.
+- Subir soporte acepta `usuario_id` (solo staff, solo rol usuario): queda
+  `pendiente` igual que si lo subiera él; resto del flujo sin cambios.
 - Ventas (`/:id/salida`, admin/mod) acreditan **Caja Bebidas**; ingresos
   (`/:id/ingreso`) y **ajustes** (`/:id/ajuste`, motivo obligatorio) solo admin.
 - **Imágenes**: `tamano_max_imagen_mb` (solo admin, hasta 3 MB, default 1);

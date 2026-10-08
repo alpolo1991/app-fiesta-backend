@@ -70,6 +70,7 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`soportes-pago` y `cuentas-pago/qr`); mensajes con la etiqueta vigente.
 - Fechas informativas `fecha_abono` / `fecha_limite_pago` (solo admin,
   `YYYY-MM-DD` o vacío; no bloquean nada, solo las muestra la UI).
+- `direccion_evento` (solo admin, texto ≤120) para info y WhatsApp.
 - `/auth/recuperar` idéntico exista o no el email; con email crea solicitud
   (`GET /recuperaciones`); el reset la marca atendida.
 - Eliminar usuario (solo admin) bloqueado si `monto_abonado > 0`: lo pagado

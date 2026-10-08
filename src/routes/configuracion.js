@@ -82,6 +82,7 @@ router.put(
       },
       nombre_evento: (s) => (s.trim() && s.trim().length <= 120 ? null : 'El nombre del evento es obligatorio (máx 120).'),
       lugar_evento: (s) => (s.trim().length <= 120 ? null : 'El lugar no puede superar 120 caracteres.'),
+      direccion_evento: (s) => (s.trim().length <= 120 ? null : 'La dirección no puede superar 120 caracteres.'),
       fecha_evento: (s) => (s === '' || /^\d{4}-\d{2}-\d{2}$/.test(s) ? null : 'La fecha debe ser YYYY-MM-DD o vacía.'),
       fecha_abono: (s) => (s === '' || /^\d{4}-\d{2}-\d{2}$/.test(s) ? null : 'La fecha debe ser YYYY-MM-DD o vacía.'),
       fecha_limite_pago: (s) => (s === '' || /^\d{4}-\d{2}-\d{2}$/.test(s) ? null : 'La fecha debe ser YYYY-MM-DD o vacía.'),

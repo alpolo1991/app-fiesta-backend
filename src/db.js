@@ -160,6 +160,7 @@ const CONFIG_DEFAULTS = {
   hora_evento: '19:00',
   fecha_abono: '',
   fecha_limite_pago: '',
+  direccion_evento: '',
 };
 try {
   const ins = db.prepare(

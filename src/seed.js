@@ -56,6 +56,7 @@ function seed() {
     insertConfig.run('tamano_max_imagen_mb', '1');
     insertConfig.run('nombre_evento', 'Fiesta Fin de Año 2026');
     insertConfig.run('lugar_evento', 'Por definir');
+    insertConfig.run('direccion_evento', 'Por definir');
     insertConfig.run('fecha_evento', '');
     insertConfig.run('hora_evento', '19:00');
     insertConfig.run('fecha_abono', '');

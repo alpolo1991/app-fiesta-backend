@@ -101,6 +101,59 @@ router.put(
 );
 
 // ---------------------------------------------------------
+// Registro manual (admin y moderador): mismos datos y validaciones
+// que /auth/registro. Crea rol 'usuario' con clave temporal
+// (deberá cambiarla al ingresar); devuelve la clave una sola vez
+// para compartirla por WhatsApp.
+// ---------------------------------------------------------
+router.post(
+  '/',
+  requireRole('admin', 'moderador'),
+  ah(async (req, res) => {
+    const { nombre, cedula, email, whatsapp, password } = req.body || {};
+    if (!nombre || !cedula || !email || !whatsapp || !password) {
+      return res.status(400).json({ mensaje: 'Nombre, cédula, email, WhatsApp y contraseña son obligatorios.' });
+    }
+    const nom = String(nombre).trim();
+    const ced = String(cedula).trim();
+    const mail = String(email).trim().toLowerCase();
+    const w = String(whatsapp).trim().replace(/\D/g, '');
+    if (nom.length < 3 || nom.length > 80) {
+      return res.status(400).json({ mensaje: 'El nombre debe tener entre 3 y 80 caracteres.' });
+    }
+    if (!/^\d{6,12}$/.test(ced)) {
+      return res.status(400).json({ mensaje: 'La cédula debe tener solo dígitos (6 a 12).' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) || mail.length > 120) {
+      return res.status(400).json({ mensaje: 'El email no es válido.' });
+    }
+    if (!/^\d{7,15}$/.test(w)) {
+      return res.status(400).json({ mensaje: 'El WhatsApp debe tener solo dígitos (7 a 15).' });
+    }
+    if (String(password).length < 6 || String(password).length > 72) {
+      return res.status(400).json({ mensaje: 'La contraseña debe tener entre 6 y 72 caracteres.' });
+    }
+    const existe = db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail);
+    if (existe) return res.status(409).json({ mensaje: 'La cédula o el email ya están registrados.' });
+
+    const password_hash = await bcrypt.hash(String(password), 10);
+    const info = db
+      .prepare(
+        `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente, password_temporal)
+         VALUES (?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?, 1)`
+      )
+      .run(nom, ced, mail, password_hash, w, montoInscripcion());
+
+    const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
+    res.status(201).json({
+      mensaje: `Usuario "${nom}" registrado. Comparte su contraseña para que ingrese.`,
+      usuario: usuarioPublico(usuario),
+      password_temporal: String(password),
+    });
+  })
+);
+
+// ---------------------------------------------------------
 // Listado (admin y moderador)
 // ---------------------------------------------------------
 router.get(

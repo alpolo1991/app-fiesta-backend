@@ -69,6 +69,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`GET /recuperaciones`); el reset la marca atendida.
 - Eliminar usuario (solo admin) bloqueado si `monto_abonado > 0`: lo pagado
   ya está en caja y borrar rompería la auditoría.
+- Registro manual `POST /usuarios` (admin y moderador): mismos datos y
+  validaciones que `/auth/registro`; crea con clave temporal (cambiarla al
+  ingresar) y la devuelve una sola vez para compartirla.
 - Tablas nuevas en `schema.sql` + creación en `db.js`; columnas con
   `migrarColumna(...)`; el `SELECT` de `authRequired` es explícito.
 

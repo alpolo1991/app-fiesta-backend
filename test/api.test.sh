@@ -151,6 +151,16 @@ check "eliminar sin pagos → 200" "eliminado" "$(REG_OK=$(curl -s -X POST $API/
 check "quitar rol al último admin → 400" "último administrador" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"rol":"moderador"}' $API/usuarios/1/rol)"
 check "PUT /me email inválido → 400" "no es válido" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/me -H 'Content-Type: application/json' -d '{"email":"xxx"}')"
 
+echo "=== 9b. Registro manual por staff ==="
+REG_MAN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"Manual E2E","cedula":"313233444","email":"manual@e2e.com","whatsapp":"3003132334","password":"clave123"}' $API/usuarios)
+check "admin registra → 201 + temporal" '"password_temporal"' "$REG_MAN"
+check "manual con saldo base" '"saldo_pendiente": 50000' "$(echo "$REG_MAN" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+check "mod registra → 201" '"password_temporal"' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d '{"nombre":"Manual Mod","cedula":"414233444","email":"manualmod@e2e.com","whatsapp":"3004142334","password":"clave123"}' $API/usuarios)"
+check "usuario NO registra → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN_USER" -H 'Content-Type: application/json' -d '{"nombre":"X","cedula":"515233444","email":"x@e2e.com","whatsapp":"3005152334","password":"clave123"}' $API/usuarios)"
+check "duplicado → 409" "ya están registrados" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"Dup","cedula":"313233444","email":"otro@e2e.com","whatsapp":"3006162334","password":"clave123"}' $API/usuarios)"
+check "sin whatsapp → 400" "obligatorios" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"Sin Wa","cedula":"616233444","email":"sinwa@e2e.com","password":"clave123"}' $API/usuarios)"
+check "login del registrado manual" '"token"' "$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"manual@e2e.com","password":"clave123"}')"
+
 echo "=== 10. Abono manual admin ==="
 E2E_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='prueba@e2e.com'][0])")
 AB=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":20000}' $API/usuarios/$E2E_ID/abono)

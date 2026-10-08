@@ -23,7 +23,7 @@ function seed() {
     `);
     insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
     insertUsuario.run(crypto.randomUUID(), 'Edwin Roa', '1000000004', 'roaruizedwinyesid@gmail.com', hash('roa123'), 'moderador', '3165362315');
-    insertUsuario.run(crypto.randomUUID(), 'Isaac Fontalvo', '1000000005', 'isaacfontalvo@gmail.com', hash('isaac123'), 'moderador', '3042246759');
+    insertUsuario.run(crypto.randomUUID(), 'Isaac Fontalvo', '1000000005', 'isaac_1129@hotmail.com', hash('isaac123'), 'moderador', '3042246759');
     // Usuario demo para validaciones (en producción se elimina desde Usuarios).
     db.prepare(
       `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)

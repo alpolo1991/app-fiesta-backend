@@ -158,6 +158,8 @@ const CONFIG_DEFAULTS = {
   nombre_admin: 'Administrador',
   nombre_moderador: 'Edwin Roa',
   hora_evento: '19:00',
+  fecha_abono: '',
+  fecha_limite_pago: '',
 };
 try {
   const ins = db.prepare(

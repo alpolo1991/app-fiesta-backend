@@ -68,6 +68,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 - **Imágenes**: `tamano_max_imagen_mb` (solo admin, hasta 3 MB, default 1);
   multer corta en 3 MB absolutos y la ruta valida el configurado
   (`soportes-pago` y `cuentas-pago/qr`); mensajes con la etiqueta vigente.
+- Fechas informativas `fecha_abono` / `fecha_limite_pago` (solo admin,
+  `YYYY-MM-DD` o vacío; no bloquean nada, solo las muestra la UI).
 - `/auth/recuperar` idéntico exista o no el email; con email crea solicitud
   (`GET /recuperaciones`); el reset la marca atendida.
 - Eliminar usuario (solo admin) bloqueado si `monto_abonado > 0`: lo pagado

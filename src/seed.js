@@ -58,6 +58,8 @@ function seed() {
     insertConfig.run('lugar_evento', 'Por definir');
     insertConfig.run('fecha_evento', '');
     insertConfig.run('hora_evento', '19:00');
+    insertConfig.run('fecha_abono', '');
+    insertConfig.run('fecha_limite_pago', '');
 
     // ---------- 5. Inventario demo (combo: 4 cervezas + 1 comida) ----------
     const insertInv = db.prepare(`

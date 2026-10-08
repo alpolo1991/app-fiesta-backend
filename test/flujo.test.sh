@@ -46,9 +46,7 @@ echo "=== F2b. Inventario demo del seed (combo) ==="
 INVF=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
 CERV=$(echo "$INVF" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0])")
 COM=$(echo "$INVF" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Comida'][0])")
-TORTA=$(echo "$INVF" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Torta'][0])")
-GASF=$(echo "$INVF" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Gaseosa'][0])")
-[ -n "$CERV" ] && check "productos combo presentes" "OK" "OK" || check "productos combo presentes" "ids" "$CERV/$COM/$TORTA/$GASF"
+[ -n "$CERV" ] && check "productos combo presentes" "OK" "OK" || check "productos combo presentes" "ids" "$CERV/$COM"
 
 echo "=== F3. Soportes: abono + pago total ==="
 python3 -c "

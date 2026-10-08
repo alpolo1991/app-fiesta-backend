@@ -26,8 +26,8 @@ TU=$(echo "$REGU" | json "d['token']")
 echo "=== 2. Estado inicial del inventario (demo del seed) ==="
 INV=$(curl -s -H "Authorization: Bearer $TA" $API/inventario)
 CERV=$(echo "$INV" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0])")
-GAS=$(echo "$INV" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Gaseosa'][0])")
-[ -n "$CERV" ] && check "productos demo presentes" "OK" "OK" || check "productos demo presentes" "ids" "$CERV/$GAS"
+COMIDA=$(echo "$INV" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Comida'][0])")
+[ -n "$CERV" ] && check "productos demo presentes" "OK" "OK" || check "productos demo presentes" "ids" "$CERV/$COMIDA"
 check "campo vendido existe" '"vendido": 0' "$INV"
 check "campo vendido_hoy existe" '"vendido_hoy": 0' "$INV"
 DISP0=$(echo "$INV" | python3 -c "import sys,json;print([p['cantidad_disponible'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0])")
@@ -48,7 +48,7 @@ check "vendido = 25000" '"vendido": 25000' "$INV2"
 check "vendido_hoy = 25000" '"vendido_hoy": 25000' "$INV2"
 
 echo "=== 5. El ADMIN vende con monto manual ==="
-VA=$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":2,"monto":10000,"motivo":"promo barra"}' $API/inventario/$GAS/salida)
+VA=$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":2,"monto":10000,"motivo":"promo barra"}' $API/inventario/$COMIDA/salida)
 check "venta admin" "Venta registrada" "$VA"
 check "monto manual 10000" '"monto": 10000' "$VA"
 check "caja bebidas acumula 35000" '"saldo": 35000' "$VA"
@@ -57,10 +57,10 @@ check "motivo guardado en el movimiento" '"motivo": "promo barra"' "$(curl -s -H
 echo "=== 6. Venta asignada a un usuario ==="
 E2E=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Comprador","cedula":"555444333","email":"comprador@e2e.com","password":"secret123","whatsapp":"3005554443"}' | json "d['usuario']['id']")
 if [ -n "$E2E" ]; then PASS=$((PASS+1)); echo "  ✅ registro de comprador (id=$E2E)"; else FAIL=$((FAIL+1)); echo "  ❌ registro de comprador: sin id"; fi
-VU=$(curl -s -X POST -H "Authorization: Bearer $TM" -H 'Content-Type: application/json' -d "{\"cantidad\":3,\"usuario_id\":$E2E}" $API/inventario/$GAS/salida)
+VU=$(curl -s -X POST -H "Authorization: Bearer $TM" -H 'Content-Type: application/json' -d "{\"cantidad\":3,\"usuario_id\":$E2E}" $API/inventario/$COMIDA/salida)
 check "venta con comprador" "Venta registrada" "$VU"
 check "concepto incluye al comprador" "Comprador" "$VU"
-check "caja bebidas = 35000 + 9000" '"saldo": 44000' "$VU"
+check "caja bebidas = 35000 + 45000" '"saldo": 80000' "$VU"
 check "historial venta_extra del usuario" 'venta_extra' "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/usuario/$E2E)"
 
 echo "=== 7. Validaciones ==="
@@ -83,31 +83,31 @@ CB=$(curl -s -H "Authorization: Bearer $TM" $API/cajas/bebidas/movimientos)
 check "caja bebidas con movimientos Venta" "Venta" "$CB"
 CI=$(curl -s -H "Authorization: Bearer $TM" $API/cajas/inscripcion/movimientos)
 check "caja inscripción NO tocada por ventas" '"movimientos": []' "$CI"
-check "vendido total = 44000" '"vendido": 44000' "$(curl -s -H "Authorization: Bearer $TA" $API/inventario)"
+check "vendido total = 80000" '"vendido": 80000' "$(curl -s -H "Authorization: Bearer $TA" $API/inventario)"
 
 echo "=== 10. Nuevas validaciones caja-stock ==="
-check "entrega cantidad 0 → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$GAS,\"cantidad\":0,\"tipo\":\"venta_extra\"}" $API/entregas)"
-check "entrega cantidad texto → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$GAS,\"cantidad\":\"abc\",\"tipo\":\"venta_extra\"}" $API/entregas)"
+check "entrega cantidad 0 → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$COMIDA,\"cantidad\":0,\"tipo\":\"venta_extra\"}" $API/entregas)"
+check "entrega cantidad texto → 400" "mayor a 0" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E,\"inventario_id\":$COMIDA,\"cantidad\":\"abc\",\"tipo\":\"venta_extra\"}" $API/entregas)"
 check "pendientes incluye staff con su combo (trazabilidad)" 'admin@fiesta.com' "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/pendientes)"
 check "pendientes: 3 usuarios + staff" "5 False" "$(curl -s -H "Authorization: Bearer $TA" $API/entregas/pendientes | python3 -c "import sys,json;ds=json.load(sys.stdin);print(len(ds), any(u['email']=='nadie@e2e.com' for u in ds))")"
 check "combos staff en dashboard" '"combosStaff"' "$(curl -s -H "Authorization: Bearer $TA" $API/dashboard/resumen)"
-check "cortesía sin motivo → 400" "cortesía" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0}' $API/inventario/$GAS/salida)"
-check "cortesía con motivo → 201" "Venta registrada" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0,"motivo":"premio barra"}' $API/inventario/$GAS/salida)"
-check "ingreso float → 400" "entero" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":2.5}' $API/inventario/$GAS/ingreso)"
-check "editar cantidades → 400" "usa" "$(curl -s -X PUT -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_total":999}' $API/inventario/$GAS)"
+check "cortesía sin motivo → 400" "cortesía" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0}' $API/inventario/$COMIDA/salida)"
+check "cortesía con motivo → 201" "Venta registrada" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":1,"monto":0,"motivo":"premio barra"}' $API/inventario/$COMIDA/salida)"
+check "ingreso float → 400" "entero" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad":2.5}' $API/inventario/$COMIDA/ingreso)"
+check "editar cantidades → 400" "usa" "$(curl -s -X PUT -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_total":999}' $API/inventario/$COMIDA)"
 check "producto nombre largo → 400" "80 caracteres" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"producto":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","categoria":"otro"}' $API/inventario)"
 check "caja concepto largo → 400" "200 caracteres" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d "{\"tipo\":\"ingreso\",\"concepto\":\"$(python3 -c "print('y'*201)")\",\"monto\":1000}" $API/cajas/bebidas/movimiento)"
 
 echo "=== 11. Ajuste de stock (solo admin) ==="
-check "sin motivo → 400" "motivo" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50}' $API/inventario/$GAS/ajuste)"
-check "negativo → 400" "entre 0 y 1000000" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":-5,"motivo":"x"}' $API/inventario/$GAS/ajuste)"
-check "total menor → 400" "no puede ser menor" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"cantidad_total":10,"motivo":"x"}' $API/inventario/$GAS/ajuste)"
-check "mod → 403" "permisos" "$(curl -s -X POST -H "Authorization: Bearer $TM" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"motivo":"x"}' $API/inventario/$GAS/ajuste)"
-check "usuario → 403" "permisos" "$(curl -s -X POST -H "Authorization: Bearer $TU" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"motivo":"x"}' $API/inventario/$GAS/ajuste)"
-AJ=$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":120,"motivo":"conteo inicial reservas"}' $API/inventario/$GAS/ajuste)
+check "sin motivo → 400" "motivo" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50}' $API/inventario/$COMIDA/ajuste)"
+check "negativo → 400" "entre 0 y 1000000" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":-5,"motivo":"x"}' $API/inventario/$COMIDA/ajuste)"
+check "total menor → 400" "no puede ser menor" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"cantidad_total":10,"motivo":"x"}' $API/inventario/$COMIDA/ajuste)"
+check "mod → 403" "permisos" "$(curl -s -X POST -H "Authorization: Bearer $TM" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"motivo":"x"}' $API/inventario/$COMIDA/ajuste)"
+check "usuario → 403" "permisos" "$(curl -s -X POST -H "Authorization: Bearer $TU" -H 'Content-Type: application/json' -d '{"cantidad_disponible":50,"motivo":"x"}' $API/inventario/$COMIDA/ajuste)"
+AJ=$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":120,"motivo":"conteo inicial reservas"}' $API/inventario/$COMIDA/ajuste)
 check "ajuste válido fija disponible" '"cantidad_disponible": 120' "$AJ"
 check "queda en historial como ajuste" '"tipo": "ajuste"' "$(curl -s -H "Authorization: Bearer $TA" $API/inventario/movimientos | head -c 3000)"
-check "sin cambios → 400" "Sin cambios" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":120,"motivo":"otra vez"}' $API/inventario/$GAS/ajuste | head -c 300)"
+check "sin cambios → 400" "Sin cambios" "$(curl -s -X POST -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"cantidad_disponible":120,"motivo":"otra vez"}' $API/inventario/$COMIDA/ajuste | head -c 300)"
 
 echo ""
 echo "RESULTADO: ✅ $PASS correctas  ❌ $FAIL incorrectas"

@@ -38,9 +38,7 @@ echo "=== 2b. Inventario demo del seed (combo) ==="
 INV0=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
 CERV_ID=$(echo "$INV0" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0])")
 COM_ID=$(echo "$INV0" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Comida'][0])")
-GAS_ID=$(echo "$INV0" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Gaseosa'][0])")
-TORTA_ID=$(echo "$INV0" | python3 -c "import sys,json;print([p['id'] for p in json.load(sys.stdin)['productos'] if p['producto']=='Torta'][0])")
-[ -n "$CERV_ID" ] && check "productos demo presentes" "OK" "OK" || check "productos demo presentes" "ids" "$CERV_ID/$COM_ID/$GAS_ID/$TORTA_ID"
+[ -n "$CERV_ID" ] && check "productos demo presentes" "OK" "OK" || check "productos demo presentes" "ids" "$CERV_ID/$COM_ID"
 
 echo "=== 3. Registro de usuario nuevo ==="
 REG=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Prueba E2E","cedula":"999888777","email":"prueba@e2e.com","password":"secret123","whatsapp":"3009998888"}')
@@ -226,12 +224,12 @@ check "pagar saldo restante → pagado" '"estado_pago": "pagado"' "$(curl -s -X 
 check "completar con faltantes → 400 (no fuerza)" "Aún faltan" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/entregas/$E2E_ID/completar)"
 check "entregar cerveza" "Combo entregado" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
 check "no entregar más de 4 cervezas" "solo tiene" "$(for i in 1 2 3 4; do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done; curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
-check "torta fuera del combo → 400" "no forma parte" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$TORTA_ID,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas | tr '[:upper:]' '[:lower:]')"
+check "fuera del combo → 400" "no forma parte" "$(AGUA=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"producto":"Agua","categoria":"bebida","cantidad_total":10,"precio_unitario":2000,"combo_por_persona":0}' $API/inventario | python3 -c "import sys,json;print(json.load(sys.stdin)['producto']['id'])"); curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$AGUA,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas | tr '[:upper:]' '[:lower:]')"
 check "entregar comida completa el combo" '"combo_completado": 1' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$COM,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/usuario/$E2E_ID | python3 -c "import sys,json;print(json.dumps({'combo_completado': 1 if json.load(sys.stdin)['combo']['completado'] else 0}))")"
 check "completar ya entregado → 200 confirmado" "confirmado como entregado" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/entregas/$E2E_ID/completar)"
 check "usuario ve SU combo sin password_hash" '"items"' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/entregas/usuario/$UID_USER)"
 check "respuesta no filtra password_hash" "no_password_hash" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/entregas/usuario/$UID_USER | grep -c password_hash | sed 's/0/no_password_hash/')"
-check "venta extra genera ingreso en caja bebidas" 'Venta extra' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID_USER,\"inventario_id\":$GAS_ID,\"cantidad\":1,\"tipo\":\"venta_extra\"}" $API/entregas >/dev/null; curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/bebidas/movimientos)"
+check "venta extra genera ingreso en caja bebidas" 'Venta extra' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID_USER,\"inventario_id\":$COM,\"cantidad\":1,\"tipo\":\"venta_extra\"}" $API/entregas >/dev/null; curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/bebidas/movimientos)"
 
 echo "=== 13b. Tamaño máx de imagen configurable (solo admin, 0.5–3 MB) ==="
 REG_IMG=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Imagen E2E","cedula":"777666555","email":"imagen@e2e.com","password":"secret123","whatsapp":"3007776665"}')

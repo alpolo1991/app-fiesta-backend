@@ -4,7 +4,7 @@
  *
  * Crea: admin/mod (sin cargo), usuario demo (cupo $50.000), cajas abiertas,
  * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
- * inventario demo del combo (cerveza ×4, comida ×1; gaseosa y torta fuera).
+ * inventario demo del combo (cerveza ×4, comida ×1).
  */
 const db = require('./db');
 const bcrypt = require('bcrypt');
@@ -71,8 +71,7 @@ function seed() {
     };
     invInicial('Cerveza', 'bebida', 300, 5000, 4);
     invInicial('Comida', 'comida', 100, 15000, 1);
-    invInicial('Gaseosa', 'bebida', 100, 3000, 0);
-    invInicial('Torta', 'comida', 50, 5000, 0);
+    // Gaseosa/Torta no se crean: el admin registra lo vendible en Inventario.
 
     // ---------- 6. Preguntas iniciales de la encuesta (catálogo) ----------
     const insertPregunta = db.prepare(`

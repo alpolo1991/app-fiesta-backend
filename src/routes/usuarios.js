@@ -321,7 +321,8 @@ router.post(
 );
 
 // ---------------------------------------------------------
-// Eliminar usuario (SOLO admin)
+// Eliminar usuario (SOLO admin). Nunca con pagos registrados:
+// lo abonado ya está en caja y borrar rompería la auditoría.
 // ---------------------------------------------------------
 router.delete(
   '/:id',
@@ -335,6 +336,13 @@ router.delete(
       return res.status(400).json({ mensaje: 'No puedes eliminar al último administrador.' });
     }
     if (id === req.user.id) return res.status(400).json({ mensaje: 'No puedes eliminarte a ti mismo.' });
+    // Con dinero registrado no se elimina: lo abonado ya está en Caja
+    // Inscripción y borrar rompería la auditoría (el pago fue confirmado).
+    if (Number(usuario.monto_abonado || 0) > 0) {
+      return res.status(400).json({
+        mensaje: `No se puede eliminar a ${usuario.nombre}: tiene pagos registrados en caja.`,
+      });
+    }
 
     db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
     res.json({ mensaje: `Usuario "${usuario.nombre}" eliminado.` });

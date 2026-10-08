@@ -67,6 +67,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`soportes-pago` y `cuentas-pago/qr`); mensajes con la etiqueta vigente.
 - `/auth/recuperar` idéntico exista o no el email; con email crea solicitud
   (`GET /recuperaciones`); el reset la marca atendida.
+- Eliminar usuario (solo admin) bloqueado si `monto_abonado > 0`: lo pagado
+  ya está en caja y borrar rompería la auditoría.
 - Tablas nuevas en `schema.sql` + creación en `db.js`; columnas con
   `migrarColumna(...)`; el `SELECT` de `authRequired` es explícito.
 

@@ -161,6 +161,13 @@ check "duplicado → 409" "ya están registrados" "$(curl -s -X POST -H "Authori
 check "sin whatsapp → 400" "obligatorios" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"Sin Wa","cedula":"616233444","email":"sinwa@e2e.com"}' $API/usuarios)"
 TEMP_MAN=$(echo "$REG_MAN" | json "d['password_temporal']")
 check "login del registrado manual con temporal" '"token"' "$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d "{\"email\":\"manual@e2e.com\",\"password\":\"$TEMP_MAN\"}")"
+UUID_MAN=$(echo "$REG_MAN" | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario'].get('uuid',''))")
+check "uuid con formato v4" "^[0-9a-f-]*$" "$UUID_MAN"
+python3 -c "import sys,uuid;uuid.UUID('$UUID_MAN', version=4)" 2>/dev/null && check "uuid válido v4" "OK" "OK" || check "uuid válido v4" "v4" "$UUID_MAN"
+check "uuid del cliente se ignora" '"uuid-ignorado": false' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"UUID Ignorado","cedula":"717233444","email":"uuidign@e2e.com","whatsapp":"3007172334","uuid":"00000000-0000-0000-0000-000000000000"}' $API/usuarios | python3 -c "import sys,json;u=json.load(sys.stdin)['usuario'];print('{\"uuid-ignorado\": ' + str(u['uuid']=='00000000-0000-0000-0000-000000000000').lower() + '}')")"
+ID_MAN=$(echo "$REG_MAN" | json "d['usuario']['id']")
+curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d "{\"uuid\":\"11111111-1111-1111-1111-111111111111\"}" $API/usuarios/$ID_MAN >/dev/null
+check "PUT no cambia uuid" "$UUID_MAN" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$ID_MAN | python3 -c "import sys,json;print(json.load(sys.stdin)['usuario']['uuid'])")"
 
 echo "=== 10. Abono manual admin ==="
 E2E_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='prueba@e2e.com'][0])")

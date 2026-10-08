@@ -67,6 +67,19 @@ migrarColumna('inventario', 'cantidad_reservada', 'INTEGER NOT NULL DEFAULT 0');
 migrarColumna('inventario', 'combo_por_persona', 'INTEGER NOT NULL DEFAULT 0');
 migrarColumna('usuarios', 'combo_reservado', 'INTEGER NOT NULL DEFAULT 0');
 
+// UUID único por usuario (generado por el backend, solo lectura).
+// En BDs anteriores se agrega y se rellena una sola vez.
+migrarColumna('usuarios', 'uuid', 'TEXT');
+try {
+  const crypto = require('crypto');
+  const sinUuid = db.prepare("SELECT id FROM usuarios WHERE uuid IS NULL OR TRIM(uuid) = ''").all();
+  const upd = db.prepare('UPDATE usuarios SET uuid = ? WHERE id = ?');
+  sinUuid.forEach((u) => upd.run(crypto.randomUUID(), u.id));
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_uuid ON usuarios(uuid)');
+} catch (e) {
+  /* tabla recién creada, nada que migrar */
+}
+
 // Combo por producto: los marcados como combo sin cantidad heredan la base
 // (Cerveza 3, Comida 1). Torta/Gaseosa los define el admin al crearlos.
 try {

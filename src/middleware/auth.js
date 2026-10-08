@@ -23,7 +23,7 @@ function authRequired(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const usuario = db
       .prepare(
-        `SELECT id, nombre, cedula, email, rol, estado_pago, monto_abonado, saldo_pendiente,
+        `SELECT id, uuid, nombre, cedula, email, rol, estado_pago, monto_abonado, saldo_pendiente,
                 pago_validado, combo_cervezas_asignadas, combo_comidas_asignadas,
                 combo_completado, acompanante_nombre, acompanante_monto,
                 whatsapp, password_temporal, created_at

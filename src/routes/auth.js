@@ -7,6 +7,7 @@
  */
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const db = require('../db');
 const { firmarToken, authRequired } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
@@ -64,12 +65,13 @@ router.post(
     if (existe) return res.status(409).json({ mensaje: 'La cédula o el email ya están registrados.' });
 
     const password_hash = await bcrypt.hash(String(password), 10);
+    // El UUID lo genera el servidor: lo que mande el cliente se ignora.
     const info = db
       .prepare(
-        `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente)
-         VALUES (?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?)`
+        `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente)
+         VALUES (?, ?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?)`
       )
-      .run(nom, ced, mail, password_hash, w, montoInscripcion());
+      .run(crypto.randomUUID(), nom, ced, mail, password_hash, w, montoInscripcion());
 
     const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
     const token = firmarToken(usuario);

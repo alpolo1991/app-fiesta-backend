@@ -16,17 +16,18 @@ function seed() {
   const tx = db.transaction(() => {
     // ---------- 1. Solo admin y moderador (saldo 0: sin cargo) ----------
     const hash = (pwd) => bcrypt.hashSync(pwd, 10);
+    const crypto = require('crypto');
     const insertUsuario = db.prepare(`
-      INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
-      VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+      INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
     `);
-    insertUsuario.run('Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
-    insertUsuario.run('Moderador', '1000000002', 'moderador@fiesta.com', hash('mod123'), 'moderador', '3133506369');
+    insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
+    insertUsuario.run(crypto.randomUUID(), 'Moderador', '1000000002', 'moderador@fiesta.com', hash('mod123'), 'moderador', '3133506369');
     // Usuario normal de prueba (cupo completo por pagar).
     db.prepare(
-      `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
-       VALUES (?, ?, ?, ?, 'usuario', ?, 0, 50000)`
-    ).run('Empleado Ejemplo', '1000000003', 'usuario@fiesta.com', hash('user123'), '3133506369');
+      `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
+       VALUES (?, ?, ?, ?, ?, 'usuario', ?, 0, 50000)`
+    ).run(crypto.randomUUID(), 'Empleado Ejemplo', '1000000003', 'usuario@fiesta.com', hash('user123'), '3133506369');
 
     // ---------- 2. Cajas (siempre abiertas al inicio) ----------
     const insertCaja = db.prepare('INSERT INTO cajas (tipo, descripcion, estado) VALUES (?, ?, ?)');

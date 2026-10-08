@@ -135,12 +135,13 @@ router.post(
 
     const temporal = passwordTemporal();
     const password_hash = await bcrypt.hash(temporal, 10);
+    // El UUID lo genera el servidor: lo que mande el cliente se ignora.
     const info = db
       .prepare(
-        `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente, password_temporal)
-         VALUES (?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?, 1)`
+        `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente, password_temporal)
+         VALUES (?, ?, ?, ?, ?, 'usuario', ?, 'no_pago', 0, ?, 1)`
       )
-      .run(nom, ced, mail, password_hash, w, montoInscripcion());
+      .run(crypto.randomUUID(), nom, ced, mail, password_hash, w, montoInscripcion());
 
     const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({

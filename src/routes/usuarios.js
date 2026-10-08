@@ -102,17 +102,17 @@ router.put(
 
 // ---------------------------------------------------------
 // Registro manual (admin y moderador): mismos datos y validaciones
-// que /auth/registro. Crea rol 'usuario' con clave temporal
-// (deberá cambiarla al ingresar); devuelve la clave una sola vez
+// que /auth/registro, sin pedir clave: genera una temporal
+// (deberá cambiarla al ingresar) y la devuelve una sola vez
 // para compartirla por WhatsApp.
 // ---------------------------------------------------------
 router.post(
   '/',
   requireRole('admin', 'moderador'),
   ah(async (req, res) => {
-    const { nombre, cedula, email, whatsapp, password } = req.body || {};
-    if (!nombre || !cedula || !email || !whatsapp || !password) {
-      return res.status(400).json({ mensaje: 'Nombre, cédula, email, WhatsApp y contraseña son obligatorios.' });
+    const { nombre, cedula, email, whatsapp } = req.body || {};
+    if (!nombre || !cedula || !email || !whatsapp) {
+      return res.status(400).json({ mensaje: 'Nombre, cédula, email y WhatsApp son obligatorios.' });
     }
     const nom = String(nombre).trim();
     const ced = String(cedula).trim();
@@ -130,13 +130,11 @@ router.post(
     if (!/^\d{7,15}$/.test(w)) {
       return res.status(400).json({ mensaje: 'El WhatsApp debe tener solo dígitos (7 a 15).' });
     }
-    if (String(password).length < 6 || String(password).length > 72) {
-      return res.status(400).json({ mensaje: 'La contraseña debe tener entre 6 y 72 caracteres.' });
-    }
     const existe = db.prepare('SELECT id FROM usuarios WHERE cedula = ? OR email = ?').get(ced, mail);
     if (existe) return res.status(409).json({ mensaje: 'La cédula o el email ya están registrados.' });
 
-    const password_hash = await bcrypt.hash(String(password), 10);
+    const temporal = passwordTemporal();
+    const password_hash = await bcrypt.hash(temporal, 10);
     const info = db
       .prepare(
         `INSERT INTO usuarios (nombre, cedula, email, password_hash, rol, whatsapp, estado_pago, monto_abonado, saldo_pendiente, password_temporal)
@@ -146,9 +144,9 @@ router.post(
 
     const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({
-      mensaje: `Usuario "${nom}" registrado. Comparte su contraseña para que ingrese.`,
+      mensaje: `Usuario "${nom}" registrado. Comparte su clave temporal para que ingrese.`,
       usuario: usuarioPublico(usuario),
-      password_temporal: String(password),
+      password_temporal: temporal,
     });
   })
 );

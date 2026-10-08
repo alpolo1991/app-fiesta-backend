@@ -81,10 +81,10 @@ try {
 }
 
 // Combo por producto: los marcados como combo sin cantidad heredan la base
-// (Cerveza 3, Comida 1). Torta/Gaseosa los define el admin al crearlos.
+// (Cerveza 4, Comida 1). Torta/Gaseosa los define el admin al crearlos.
 try {
   db.prepare(
-    `UPDATE inventario SET combo_por_persona = 3
+    `UPDATE inventario SET combo_por_persona = 4
      WHERE es_combo = 1 AND combo_por_persona = 0 AND LOWER(producto) LIKE '%cerveza%'`
   ).run();
   db.prepare(
@@ -93,6 +93,23 @@ try {
   ).run();
 } catch (e) {
   /* tabla recién creada, nada que migrar */
+}
+
+// Combo vigente (4 cervezas + 1 comida): aplica a los productos estándar en
+// BDs anteriores; Torta/Gaseosa salen del combo (quedan para venta extra).
+try {
+  db.prepare(
+    `UPDATE inventario SET combo_por_persona = 4 WHERE LOWER(producto) LIKE '%cerveza%'`
+  ).run();
+  db.prepare(
+    `UPDATE inventario SET combo_por_persona = 1 WHERE LOWER(producto) LIKE '%comida%'`
+  ).run();
+  db.prepare(
+    `UPDATE inventario SET combo_por_persona = 0
+     WHERE LOWER(producto) LIKE '%torta%' OR LOWER(producto) LIKE '%gaseosa%'`
+  ).run();
+} catch (e) {
+  /* tabla recién creada, el seed la llenará */
 }
 
 // Tabla de acompañantes (máx 1 por usuario).
@@ -177,7 +194,7 @@ try {
   /* tabla recién creada, nada que migrar */
 }
 
-// El combo de cada acompañante (+3 cervezas, +1 comida) se otorga solo cuando
+// El combo de cada acompañante (+4 cervezas, +1 comida) se otorga solo cuando
 // el usuario ya pagó su parte (abonado acumulado cubre sus montos, en orden).
 // Nivela una sola vez las filas que ya cumplen la condición (solo aumenta).
 try {
@@ -215,7 +232,7 @@ try {
   );
   usuarios.forEach((u) => {
     const k = pagadosDe(u.id, u.monto_abonado);
-    const objCerv = 3 + 3 * k;
+    const objCerv = 4 + 4 * k;
     const objCom = 1 + 1 * k;
     if (objCerv > Number(u.combo_cervezas_asignadas) || objCom > Number(u.combo_comidas_asignadas)) {
       upd.run(

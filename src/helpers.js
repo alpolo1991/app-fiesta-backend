@@ -31,8 +31,8 @@ const TAMANO_MAX_IMAGEN_MB_DEFAULT = 1;
 const TAMANO_MAX_IMAGEN_MB_MAX = 3;
 /** Abono mínimo permitido. */
 const ABONO_MINIMO = 20000;
-/** Combo por persona (el acompañante suma otro combo igual al usuario). */
-const COMBO_CERVEZAS = 3;
+/** Combo por persona: 4 cervezas + 1 comida (el acompañante suma otro igual). */
+const COMBO_CERVEZAS = 4;
 const COMBO_COMIDAS = 1;
 
 /** Devuelve el estado de pago derivado del monto abonado y el saldo. */

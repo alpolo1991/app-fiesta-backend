@@ -50,7 +50,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`monto_inscripcion` usuario + `monto_acompanante` acompañante, solo admin,
   default 50000); suma `saldo_pendiente`; FIFO con base primero (el abonado
   cubre la inscripción y luego al acompañante). Combo por producto
-  (`combo_por_persona`); al pagar el total se **reserva** (`reservarCombo()`,
+  (`combo_por_persona`: 4 cervezas + 1 comida; torta/gaseosa fuera, solo
+  venta extra); al pagar el total se **reserva** (`reservarCombo()`,
   nunca frena dinero). Columnas legacy solo por compatibilidad.
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y
   `POST /entregas/:id/completar` exigen `estado_pago === 'pagado'` en rol

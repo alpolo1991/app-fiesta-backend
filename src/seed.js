@@ -4,7 +4,7 @@
  *
  * Crea: admin/mod (sin cargo), usuario demo (cupo $50.000), cajas abiertas,
  * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
- * inventario demo del combo (cerveza, comida, gaseosa, torta).
+ * inventario demo del combo (cerveza ×4, comida ×1; gaseosa y torta fuera).
  */
 const db = require('./db');
 const bcrypt = require('bcrypt');
@@ -58,7 +58,7 @@ function seed() {
     insertConfig.run('fecha_evento', '');
     insertConfig.run('hora_evento', '19:00');
 
-    // ---------- 5. Inventario demo (combo: cerveza, comida, gaseosa, torta) ----------
+    // ---------- 5. Inventario demo (combo: 4 cervezas + 1 comida) ----------
     const insertInv = db.prepare(`
       INSERT INTO inventario (producto, categoria, cantidad_total, cantidad_disponible, cantidad_entregada, precio_unitario, es_combo, combo_por_persona)
       VALUES (?, ?, ?, ?, 0, ?, 1, ?)
@@ -69,10 +69,10 @@ function seed() {
         `INSERT INTO movimientos_inventario (inventario_id, tipo, cantidad, motivo) VALUES (?, 'ingreso', ?, 'Stock inicial')`
       ).run(id, stock);
     };
-    invInicial('Cerveza', 'bebida', 300, 5000, 3);
+    invInicial('Cerveza', 'bebida', 300, 5000, 4);
     invInicial('Comida', 'comida', 100, 15000, 1);
-    invInicial('Gaseosa', 'bebida', 100, 3000, 1);
-    invInicial('Torta', 'comida', 50, 5000, 1);
+    invInicial('Gaseosa', 'bebida', 100, 3000, 0);
+    invInicial('Torta', 'comida', 50, 5000, 0);
 
     // ---------- 6. Preguntas iniciales de la encuesta (catálogo) ----------
     const insertPregunta = db.prepare(`

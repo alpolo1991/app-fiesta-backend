@@ -48,7 +48,7 @@ check "nombre quedó guardado" "Anita Prueba" "$(curl -s -H "Authorization: Bear
 check "1/1 registrado" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/mios)"
 check "2do → 400 (máximo 1)" "Máximo 1" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -H 'Content-Type: application/json' -d '{"nombre":"Extra Prueba"}' $API/acompanantes)"
 check "saldo 50000 + 1×50000 = 100000" '"saldo_pendiente":100000' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/usuarios/me)"
-check "combo aún base sin pagar (3/1)" '"combo_cervezas_asignadas":3' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/usuarios/me)"
+check "combo aún base sin pagar (4/1)" '"combo_cervezas_asignadas":4' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/usuarios/me)"
 
 echo "=== A4. Permisos ==="
 check "staff no agrega (admin → 403)" "permisos" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"nombre":"X"}' $API/acompanantes)"
@@ -59,10 +59,10 @@ echo "=== A5. Pago otorga combos (uno por cada pagado) ==="
 USER_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='acomp@e2e.com'][0])")
 AB1=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$USER_ID/abono)
 COMBO1=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$USER_ID)
-check "base cubierta, 0 acompañantes pagos → 1 persona" '"requerido": 3' "$(echo "$COMBO1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "base cubierta, 0 acompañantes pagos → 1 persona" '"requerido": 4' "$(echo "$COMBO1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 AB2=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$USER_ID/abono)
 COMBO2=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$USER_ID)
-check "1 pagado → 2 personas, 6 cervezas" '"requerido": 6' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "1 pagado → 2 personas, 8 cervezas" '"requerido": 8' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 check "1 pagado → 2 comidas" '"requerido": 2' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Comida'][0]))")"
 check "flag pagado en lista" '"pagado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/mios | tr -d ' ')"
 

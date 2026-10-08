@@ -6,7 +6,7 @@
  * - DELETE /:id   → el dueño (si aún no está pagado) o admin
  *
  * El precio es fijo (config monto_acompanante) y solo lo modifica el admin.
- * Cada acompañante suma a su saldo y, al pagarse, otorga +3/+1 de combo.
+ * Cada acompañante suma a su saldo y, al pagarse, otorga +4/+1 de combo.
  */
 const express = require('express');
 const db = require('../db');

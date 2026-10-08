@@ -30,10 +30,9 @@ npm run seed  # siembra solo si `usuarios` está vacío
 npm run reset # BORRA fiesta.db* + uploads y re-siembran desde cero
 ```
 
-Seed: admin (`admin@fiesta.com`/`admin123`), Edwin Roa
-(`roaruizedwinyesid@gmail.com`/`roa123`, mod), Isaac Fontalvo
-(`isaac_1129@hotmail.com`/`isaac123`, mod), demo (`demo@fiesta.com`/`demo123`,
-se elimina en producción), cajas abiertas, cuentas de pago, configuración, preguntas e inventario demo.
+Seed: equipo inicial (admin + 2 moderadores, credenciales privadas) + usuario
+demo (`demo@fiesta.com`/`demo123`, se elimina en producción), cajas abiertas,
+cuentas de pago, configuración, preguntas e inventario demo.
 
 ## 🔑 Variables (`cp .env.example .env`)
 

@@ -160,13 +160,28 @@ router.post(
 );
 
 // ---------------------------------------------------------
-// Listado (admin y moderador)
+// Listado (admin ve todo; el moderador no ve admins y sin emails ajenos)
 // ---------------------------------------------------------
 router.get(
   '/',
   requireRole('admin', 'moderador'),
   ah(async (req, res) => {
-    const filas = db.prepare(`${SQL_USUARIO_DETALLE} ORDER BY u.created_at DESC, u.id DESC`).all();
+    let filas = db.prepare(`${SQL_USUARIO_DETALLE} ORDER BY u.created_at DESC, u.id DESC`).all();
+    if (req.user.rol === 'moderador') {
+      const pendientes = new Set(
+        db
+          .prepare("SELECT DISTINCT usuario_id AS id FROM solicitudes_recuperacion WHERE estado = 'pendiente'")
+          .all()
+          .map((r) => r.id)
+      );
+      filas = filas
+        .filter((u) => u.rol !== 'admin')
+        .map((u) => ({
+          ...u,
+          email: u.id === req.user.id ? u.email : null,
+          solicitud_pendiente: pendientes.has(u.id) ? 1 : 0,
+        }));
+    }
     res.json(filas.map(usuarioPublico));
   })
 );
@@ -181,6 +196,11 @@ router.get(
     const id = Number(req.params.id);
     const usuario = db.prepare(`${SQL_USUARIO_DETALLE} WHERE u.id = ?`).get(id);
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    // El moderador no ve la ficha del admin.
+    if (req.user.rol === 'moderador' && usuario.rol === 'admin') {
+      return res.status(403).json({ mensaje: 'No tienes permisos para ver esta ficha.' });
+    }
+    if (req.user.rol === 'moderador' && id !== req.user.id) usuario.email = null;
 
     const completada = db.prepare('SELECT completada_en FROM encuestas_completadas WHERE usuario_id = ?').get(id);
     const respuestas = db
@@ -451,7 +471,8 @@ router.put(
 // ---------------------------------------------------------
 // Resetear contraseña (admin y moderador).
 // Devuelve la contraseña temporal para dársela al usuario por WhatsApp.
-// El moderador NO puede resetear moderadores ni admin.
+// El moderador resetea usuarios; al admin SOLO si el admin lo solicitó
+// (solicitud pendiente: queda atendida y se desactiva de nuevo).
 // ---------------------------------------------------------
 router.put(
   '/:id/reset-password',
@@ -462,7 +483,14 @@ router.put(
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
 
     if (req.user.rol === 'moderador' && usuario.rol !== 'usuario') {
-      return res.status(403).json({ mensaje: 'Un moderador solo puede resetear contraseñas de usuarios.' });
+      const esAdminConSolicitud =
+        usuario.rol === 'admin' &&
+        db
+          .prepare("SELECT id FROM solicitudes_recuperacion WHERE usuario_id = ? AND estado = 'pendiente'")
+          .get(id);
+      if (!esAdminConSolicitud) {
+        return res.status(403).json({ mensaje: 'Un moderador solo puede resetear contraseñas de usuarios.' });
+      }
     }
 
     const temporal = passwordTemporal();
@@ -474,10 +502,11 @@ router.put(
        WHERE usuario_id = ? AND estado = 'pendiente'`
     ).run(req.user.id, id);
 
+    const paraMod = req.user.rol === 'moderador' && id !== req.user.id;
     res.json({
       mensaje: `Contraseña temporal generada para ${usuario.nombre}.`,
       password_temporal: temporal,
-      usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, whatsapp: usuario.whatsapp || '' },
+      usuario: { id: usuario.id, nombre: usuario.nombre, email: paraMod ? null : usuario.email, whatsapp: usuario.whatsapp || '' },
     });
   })
 );

@@ -194,6 +194,13 @@ TEMP=$(echo "$RST" | json "d['password_temporal']")
 check "login con contraseña temporal" '"token"' "$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d "{\"email\":\"prueba@e2e.com\",\"password\":\"$TEMP\"}")"
 check "mod NO resetea a otro moderador" "solo puede resetear" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/2/reset-password)"
 check "mod NO resetea al admin" "solo puede resetear" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/1/reset-password)"
+check "mod no ve al admin en lista" "sin-admin" "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios | python3 -c "import sys,json;print('hay-admin' if any(u['rol']=='admin' for u in json.load(sys.stdin)) else 'sin-admin')")"
+check "mod ve emails ajenos enmascarados" "mails-ok" "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios | python3 -c "import sys,json;us=json.load(sys.stdin);print('mails-ok' if all(u['email'] is None or u['email']=='roaruizedwinyesid@gmail.com' for u in us) else 'mails-mal')")"
+curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com"}' >/dev/null
+check "mod ve solicitud del admin" '"usuario_rol":"admin"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/recuperaciones | tr -d ' ')"
+RSTADM=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/1/reset-password)
+check "mod resetea admin solicitado → 200" '"password_temporal"' "$RSTADM"
+check "solicitud del admin atendida" '"cantidad":0' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/recuperaciones | python3 -c "import sys,json;d=json.load(sys.stdin);print('{\"cantidad\":'+str(len([s for s in d['solicitudes'] if s['usuario_id']==1]))+'}')")"
 
 echo "=== 12. Preguntas / encuesta ==="
 check "usuario ve solo preguntas activas" '¿Qué tipo de bebida' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/preguntas)"

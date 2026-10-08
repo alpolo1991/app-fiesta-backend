@@ -81,7 +81,7 @@ check "repetida no duplica" '"cantidad":1' "$(curl -s -H "Authorization: Bearer 
 curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"nadie@e2e.com"}' >/dev/null
 check "inexistente no crea solicitud" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/recuperaciones)"
 curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com"}' >/dev/null
-check "mod ve la de usuarios pero no la de staff" 'auth@e2e.com' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD2" $API/recuperaciones)"
+check "mod ve la de usuarios pero no la de staff" 'Auth Editado' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD2" $API/recuperaciones)"
 check "mod ve solo 1 (oculta la del staff)" '"cantidad":1' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD2" $API/recuperaciones)"
 TOKEN_U=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"auth@e2e.com","password":"otra123456"}' | json "d['token']")
 check "usuario → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_U" $API/recuperaciones)"

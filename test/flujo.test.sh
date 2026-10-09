@@ -113,11 +113,11 @@ check "completar bloqueado sin pago" "no tiene el pago" "$(curl -s -X POST -H "A
 curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$ID3/abono >/dev/null
 for i in 1 2 3 4; do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done
 curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$COM,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null
-check "base completa → completado" '"estado_combo": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['email']=='tres@e2e.com'][0]))")"
+check "base completa → completado" '"estado_combo": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['nombre']=='Usuario Tres'][0]))")"
 curl -s -X POST -H "Authorization: Bearer $TU3" -H 'Content-Type: application/json' -d '{"nombre":"Hijo Flujo"}' $API/acompanantes >/dev/null
-check "con acompañante sin pagar sigue completado (base)" '"estado_combo": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['email']=='tres@e2e.com'][0]))")"
+check "con acompañante sin pagar sigue completado (base)" '"estado_combo": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['nombre']=='Usuario Tres'][0]))")"
 curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$ID3/abono >/dev/null
-check "al pagar acompañante vuelve a parcial (no stale)" '"estado_combo": "parcial"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['email']=='tres@e2e.com'][0]))")"
+check "al pagar acompañante vuelve a parcial (no stale)" '"estado_combo": "parcial"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['nombre']=='Usuario Tres'][0]))")"
 check "grupo cliente completado + acompañante pendiente" '"cliente": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/usuario/$ID3 | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['combo']))")"
 
 echo "=== F6. Claves: recuperar → solicitud → reset → login ==="

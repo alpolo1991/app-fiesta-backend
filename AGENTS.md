@@ -79,8 +79,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 - Eliminar usuario (solo admin) bloqueado si `monto_abonado > 0`: lo pagado
   ya está en caja y borrar rompería la auditoría.
 - Privacidad del mod: no ve admins en lista/ficha; emails ajenos enmascarados
-  (lista, ficha, recuperaciones, reset); resetea usuarios, y al admin solo con
-  solicitud pendiente (se atiende y desactiva de nuevo).
+  (lista, ficha, pendientes de entregas, recuperaciones, reset); resetea
+  usuarios, y al admin solo con solicitud pendiente (se atiende y desactiva
+  de nuevo).
 - Registro manual `POST /usuarios` (admin y moderador): mismos datos y
   validaciones que `/auth/registro`, sin pedir clave (genera temporal,
   cambiarla al ingresar) y la devuelve una sola vez para compartirla.

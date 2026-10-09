@@ -99,6 +99,8 @@ router.get(
         const entregados = combo.items.reduce((acc, i) => acc + i.entregado, 0);
         return {
           ...u,
+          // El email solo lo ve el admin.
+          email: req.user.rol === 'admin' ? u.email : null,
           combo_personas: combo.persons,
           combo_items: combo.items,
           combo_cliente: combo.cliente,

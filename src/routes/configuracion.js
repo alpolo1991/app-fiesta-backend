@@ -1,16 +1,63 @@
 /**
  * /api/configuracion
- * - GET  /          → claves y valores (WhatsApp, datos del evento)
+ * - GET  /          → claves y valores (WhatsApp, datos del evento;
+ *                     del póster solo expone `tiene_poster`, no la referencia)
  * - GET  /contactos → staff (admin/mod con WhatsApp) para /soporte y /recuperar.
  *                     Todo rol nuevo aparece solo; sin staff usa la config.
+ * - GET  /poster    → imagen del póster (pública, para Soporte/modal inicio)
+ * - PUT  /poster    → SOLO admin: sube/cambia el póster (jpg/png/webp)
+ * - DELETE /poster  → SOLO admin: quita el póster
  * - PUT  /:clave    → SOLO admin
  */
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
-const { ah } = require('../helpers');
+const { ah, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
+const { NUBE, UPLOAD_DIR, subirANube, urlDeNube, borrarDeNube, borrarLocal } = require('../storage');
 
 const router = express.Router();
+
+const storageDisco = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `poster-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+  },
+});
+
+const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+
+const upload = multer({
+  storage: NUBE ? multer.memoryStorage() : storageDisco,
+  limits: { fileSize: TAMANO_MAX_IMAGEN_MB_MAX * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (MIME[ext] && ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Solo se permiten imágenes (jpg, png, webp).'));
+  },
+});
+
+/** Referencia interna del póster (public_id nube o archivo local). */
+function refPoster() {
+  try {
+    const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'poster_evento'").get();
+    const v = String(fila && fila.valor || '').trim();
+    return v || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function guardarRefPoster(ref) {
+  db.prepare(
+    `INSERT INTO configuracion (clave, valor, updated_at) VALUES ('poster_evento', ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor, updated_at = CURRENT_TIMESTAMP`
+  ).run(ref);
+}
 
 // Lectura abierta (el login/recuperar necesitan los WhatsApp antes de iniciar sesión)
 router.get(
@@ -19,6 +66,9 @@ router.get(
     const filas = db.prepare('SELECT clave, valor FROM configuracion').all();
     const map = {};
     filas.forEach((f) => (map[f.clave] = f.valor));
+    // Del póster no se expone la referencia interna, solo si existe.
+    delete map.poster_evento;
+    map.tiene_poster = !!refPoster();
     res.json(map);
   })
 );
@@ -48,6 +98,72 @@ router.get(
         wa: normalizar(f.whatsapp),
       }))
     );
+  })
+);
+
+// Póster del evento (público para ver; solo admin lo cambia).
+router.get(
+  '/poster',
+  ah(async (req, res) => {
+    const ref = refPoster();
+    if (!ref) return res.status(404).json({ mensaje: 'Aún no hay póster del evento.' });
+    if (NUBE) return res.redirect(urlDeNube(ref));
+    const ruta = path.join(UPLOAD_DIR, path.basename(ref));
+    if (!fs.existsSync(ruta)) return res.status(404).json({ mensaje: 'El póster ya no existe en el servidor.' });
+    res.setHeader('Content-Type', MIME[path.extname(ruta).toLowerCase()] || 'application/octet-stream');
+    res.sendFile(ruta);
+  })
+);
+
+router.put(
+  '/poster',
+  authRequired,
+  requireRole('admin'),
+  (req, res, next) => {
+    upload.single('archivo')(req, res, (err) => {
+      if (err) {
+        const msg =
+          err.code === 'LIMIT_FILE_SIZE'
+            ? `El archivo supera el máximo absoluto de ${TAMANO_MAX_IMAGEN_MB_MAX} MB.`
+            : err.message || 'Error al subir el archivo.';
+        return res.status(400).json({ mensaje: msg });
+      }
+      if (req.file && req.file.size > tamanoMaxImagenBytes()) {
+        if (!NUBE && req.file.filename) borrarLocal(req.file.filename);
+        return res.status(400).json({ mensaje: `El archivo supera el máximo permitido de ${etiquetaTamanoMax()}.` });
+      }
+      next();
+    });
+  },
+  ah(async (req, res) => {
+    if (!req.file) return res.status(400).json({ mensaje: 'Debes adjuntar la imagen del póster.' });
+    let ref;
+    try {
+      ref = NUBE ? await subirANube(req.file.buffer, req.file.originalname) : req.file.filename;
+    } catch (e) {
+      return res.status(502).json({ mensaje: 'No se pudo guardar el póster. Intenta de nuevo.' });
+    }
+    const anterior = refPoster();
+    guardarRefPoster(ref);
+    if (anterior && anterior !== ref) {
+      if (NUBE) await borrarDeNube(anterior);
+      else borrarLocal(anterior);
+    }
+    res.json({ mensaje: 'Póster actualizado.', tiene_poster: true });
+  })
+);
+
+router.delete(
+  '/poster',
+  authRequired,
+  requireRole('admin'),
+  ah(async (req, res) => {
+    const ref = refPoster();
+    if (!ref) return res.status(404).json({ mensaje: 'No hay póster para quitar.' });
+    if (NUBE) await borrarDeNube(ref);
+    else borrarLocal(ref);
+    guardarRefPoster('');
+    res.json({ mensaje: 'Póster eliminado.', tiene_poster: false });
   })
 );
 

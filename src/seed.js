@@ -73,7 +73,7 @@ function seed() {
         `INSERT INTO movimientos_inventario (inventario_id, tipo, cantidad, motivo) VALUES (?, 'ingreso', ?, 'Stock inicial')`
       ).run(id, stock);
     };
-    invInicial('Cerveza', 'bebida', 300, 5000, 4);
+    invInicial('Cerveza', 'bebida', 300, 5000, 3);
     invInicial('Comida', 'comida', 100, 15000, 1);
     // Gaseosa/Torta no se crean: el admin registra lo vendible en Inventario.
 

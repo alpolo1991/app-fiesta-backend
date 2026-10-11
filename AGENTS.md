@@ -50,8 +50,8 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`monto_inscripcion` usuario + `monto_acompanante` acompañante, solo admin,
   default 50000); suma `saldo_pendiente`; FIFO con base primero (el abonado
   cubre la inscripción y luego al acompañante). Combo FIJO por usuario desde
-  la config (`combo_cerveza` + `combo_comida`, solo admin, default 4+1, sin
-  multiplicar por acompañantes; el seed solo trae Cerveza y Comida, el resto
+  la config (`combo_cerveza` + `combo_comida`, solo admin, default 3+1 para
+  todos los roles, sin multiplicar por acompañantes; el seed solo trae Cerveza y Comida, el resto
   los crea el admin para venta extra); al pagar el total se **reserva** (`reservarCombo()`,
   nunca frena dinero). Columnas legacy solo por compatibilidad.
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y

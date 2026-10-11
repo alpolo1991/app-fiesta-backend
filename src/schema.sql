@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   monto_abonado             REAL NOT NULL DEFAULT 0,
   saldo_pendiente           REAL NOT NULL DEFAULT 50000,
   pago_validado             INTEGER NOT NULL DEFAULT 0,
-  combo_cervezas_asignadas  INTEGER NOT NULL DEFAULT 4,
+  combo_cervezas_asignadas  INTEGER NOT NULL DEFAULT 3,
   combo_comidas_asignadas   INTEGER NOT NULL DEFAULT 1,
   combo_completado          INTEGER NOT NULL DEFAULT 0,
   combo_reservado           INTEGER NOT NULL DEFAULT 0,         -- 1 = stock del combo ya reservado

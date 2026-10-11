@@ -64,22 +64,22 @@ S1_ID=$(echo "$S1" | json "d['soporte']['id']")
 APR1=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d '{"comentario":"verificado"}' $API/soportes-pago/$S1_ID/aprobar)
 check "mod aprueba abono user1" '"estado_pago":"abonado"' "$APR1"
 COMBOF1=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$UID1)
-check "abono cubre base → 4 cervezas (fijo)" '"requerido": 4' "$(echo "$COMBOF1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "abono cubre base → 3 cervezas (fijo)" '"requerido": 3' "$(echo "$COMBOF1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 S2=$(curl -s -X POST -H "Authorization: Bearer $TU1" -F "archivo=@$TMP/s.png;type=image/png" -F "monto=1" -F "tipo=pago_total" $API/soportes-pago)
 S2_ID=$(echo "$S2" | json "d['soporte']['id']")
 APR2=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"comentario":"pago completo ok"}' $API/soportes-pago/$S2_ID/aprobar)
 check "admin aprueba total user1 → pagado" '"estado_pago":"pagado"' "$APR2"
 COMBOF2=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$UID1)
-check "1 acompañante pagado → sigue 4 cervezas (fijo)" '"requerido": 4' "$(echo "$COMBOF2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "1 acompañante pagado → sigue 3 cervezas (fijo)" '"requerido": 3' "$(echo "$COMBOF2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 INV_R=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
-check "al pagar total se reserva stock (296 disp, 4 res)" '"cantidad_disponible": 296' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
+check "al pagar total se reserva stock (297 disp, 3 res)" '"cantidad_disponible": 297' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
 check "reserva registrada en movimientos" '"tipo":"reserva"' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario/movimientos | head -c 3000 | tr -d ' ')"
 check "revisor registrado" 'revisado_por_nombre' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/soportes-pago?estado=todas&usuario_id=$UID1")"
 S3=$(curl -s -X POST -H "Authorization: Bearer $TU2" -F "archivo=@$TMP/s.png;type=image/png" -F "monto=1" -F "tipo=pago_total" $API/soportes-pago)
 S3_ID=$(echo "$S3" | json "d['soporte']['id']")
 APR3=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/soportes-pago/$S3_ID/aprobar)
 COMBOF3=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$ID2)
-check "user2 pagado → 4 cervezas (fijo)" '"requerido": 4' "$(echo "$COMBOF3" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "user2 pagado → 3 cervezas (fijo)" '"requerido": 3' "$(echo "$COMBOF3" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 
 echo "=== F4. Persistencia cruzada: caja, KPIs, CSV, ficha ==="
 CI=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/inscripcion/movimientos)
@@ -99,10 +99,10 @@ FICHA=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$UID1)
 check "ficha user1 con 1 acompañante" '"cantidad":1' "$FICHA"
 
 echo "=== F5. Entregas del combo ==="
-for i in $(seq 1 4); do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID1,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done
+for i in $(seq 1 3); do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID1,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done
 curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID1,\"inventario_id\":$COM,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null
-check "combo 4/1 completado" '"completado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/usuario/$UID1 | python3 -c "import sys,json;d=json.load(sys.stdin);print('{\"completado\":'+str(d['combo']['completado']).lower()+'}')")"
-check "5ta cerveza excede (máx 4)" "solo tiene" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID1,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
+check "combo 3/1 completado" '"completado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/usuario/$UID1 | python3 -c "import sys,json;d=json.load(sys.stdin);print('{\"completado\":'+str(d['combo']['completado']).lower()+'}')")"
+check "4ta cerveza excede (máx 3)" "solo tiene" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$UID1,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
 
 echo "=== F5b. Combo fijo: no cambia al pagar acompañante ==="
 REG3=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario Tres","cedula":"333444555","email":"tres@e2e.com","password":"secret123","whatsapp":"3003334445"}')
@@ -111,7 +111,7 @@ ID3=$(echo "$REG3" | json "d['usuario']['id']")
 check "combo bloqueado sin pago (no_pago)" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
 check "completar bloqueado sin pago" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/entregas/$ID3/completar)"
 curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$ID3/abono >/dev/null
-for i in 1 2 3 4; do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done
+for i in 1 2 3; do curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null; done
 curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$ID3,\"inventario_id\":$COM,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas >/dev/null
 check "base completa → completado" '"estado_combo": "completado"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['nombre']=='Usuario Tres'][0]))")"
 curl -s -X POST -H "Authorization: Bearer $TU3" -H 'Content-Type: application/json' -d '{"nombre":"Hijo Flujo"}' $API/acompanantes >/dev/null

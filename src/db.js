@@ -81,10 +81,10 @@ try {
 }
 
 // Combo por producto: los marcados como combo sin cantidad heredan la base
-// (Cerveza 4, Comida 1). Torta/Gaseosa los define el admin al crearlos.
+// (Cerveza 3, Comida 1). Torta/Gaseosa los define el admin al crearlos.
 try {
   db.prepare(
-    `UPDATE inventario SET combo_por_persona = 4
+    `UPDATE inventario SET combo_por_persona = 3
      WHERE es_combo = 1 AND combo_por_persona = 0 AND LOWER(producto) LIKE '%cerveza%'`
   ).run();
   db.prepare(
@@ -95,11 +95,11 @@ try {
   /* tabla recién creada, nada que migrar */
 }
 
-// Combo vigente (4 cervezas + 1 comida): aplica a los productos estándar en
+// Combo vigente (3 cervezas + 1 comida): aplica a los productos estándar en
 // BDs anteriores; Torta/Gaseosa salen del combo (quedan para venta extra).
 try {
   db.prepare(
-    `UPDATE inventario SET combo_por_persona = 4 WHERE LOWER(producto) LIKE '%cerveza%'`
+    `UPDATE inventario SET combo_por_persona = 3 WHERE LOWER(producto) LIKE '%cerveza%'`
   ).run();
   db.prepare(
     `UPDATE inventario SET combo_por_persona = 1 WHERE LOWER(producto) LIKE '%comida%'`
@@ -161,7 +161,7 @@ const CONFIG_DEFAULTS = {
   fecha_abono: '',
   fecha_limite_pago: '',
   direccion_evento: '',
-  combo_cerveza: '4',
+  combo_cerveza: '3',
   combo_comida: '1',
 };
 try {
@@ -199,7 +199,7 @@ try {
   /* tabla recién creada, nada que migrar */
 }
 
-// Columnas legacy del combo: se nivelan al combo fijo vigente (4+1).
+// Columnas legacy del combo: se nivelan al combo fijo vigente (3+1).
 // Nivela una sola vez (solo aumenta, nunca baja lo ya asignado).
 try {
   const usuarios = db
@@ -214,7 +214,7 @@ try {
     `UPDATE usuarios SET combo_cervezas_asignadas = ?, combo_comidas_asignadas = ? WHERE id = ?`
   );
   usuarios.forEach((u) => {
-    const objCerv = 4;
+    const objCerv = 3;
     const objCom = 1;
     if (objCerv > Number(u.combo_cervezas_asignadas) || objCom > Number(u.combo_comidas_asignadas)) {
       upd.run(
@@ -248,7 +248,7 @@ try {
   };
   // Combo fijo (sin multiplicar por acompañantes): Cerveza + Comida.
   const comboFijo = [
-    { patron: '%cerveza%', requerido: leerCombo('combo_cerveza', 4) },
+    { patron: '%cerveza%', requerido: leerCombo('combo_cerveza', 3) },
     { patron: '%comida%', requerido: leerCombo('combo_comida', 1) },
   ]
     .map((d) => {

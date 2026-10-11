@@ -31,8 +31,8 @@ const TAMANO_MAX_IMAGEN_MB_DEFAULT = 1;
 const TAMANO_MAX_IMAGEN_MB_MAX = 3;
 /** Abono mínimo permitido. */
 const ABONO_MINIMO = 20000;
-/** Combo por persona: 4 cervezas + 1 comida (el acompañante suma otro igual). */
-const COMBO_CERVEZAS = 4;
+/** Combo por persona: 3 cervezas + 1 comida (el acompañante suma otro igual). */
+const COMBO_CERVEZAS = 3;
 const COMBO_COMIDAS = 1;
 
 /** Devuelve el estado de pago derivado del monto abonado y el saldo. */
@@ -60,7 +60,7 @@ function personasCombo(usuarioId) {
   return 1 + acompanantesPagados(usuarioId, u.monto_abonado).pagados;
 }
 
-/** Cantidad de cervezas del combo (configurable por admin, default 4). */
+/** Cantidad de cervezas del combo (configurable por admin, default 3). */
 function comboCerveza() {
   try {
     const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'combo_cerveza'").get();
@@ -69,7 +69,7 @@ function comboCerveza() {
   } catch (e) {
     /* tabla aún no creada */
   }
-  return 4;
+  return 3;
 }
 
 /** Cantidad de comidas del combo (configurable por admin, default 1). */

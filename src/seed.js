@@ -4,7 +4,7 @@
  *
  * Crea: admin + 2 mods (sin cargo) + demo (cupo por pagar), cajas abiertas,
  * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
- * inventario demo del combo (cerveza ×4, comida ×1).
+ * inventario demo del combo (cerveza ×3, comida ×1).
  */
 const db = require('./db');
 const bcrypt = require('bcrypt');
@@ -62,7 +62,7 @@ function seed() {
     insertConfig.run('fecha_abono', '');
     insertConfig.run('fecha_limite_pago', '');
 
-    // ---------- 5. Inventario demo (combo: 4 cervezas + 1 comida) ----------
+    // ---------- 5. Inventario demo (combo: 3 cervezas + 1 comida) ----------
     const insertInv = db.prepare(`
       INSERT INTO inventario (producto, categoria, cantidad_total, cantidad_disponible, cantidad_entregada, precio_unitario, es_combo, combo_por_persona)
       VALUES (?, ?, ?, ?, 0, ?, 1, ?)

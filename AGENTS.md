@@ -49,10 +49,11 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
 - **Acompañantes (máx 1)**: tabla `acompanantes`; montos **fijos** de config
   (`monto_inscripcion` usuario + `monto_acompanante` acompañante, solo admin,
   default 50000); suma `saldo_pendiente`; FIFO con base primero (el abonado
-  cubre la inscripción y luego al acompañante). Combo FIJO por usuario desde
-  la config (`combo_cerveza` + `combo_comida`, solo admin, default 3+1 para
-  todos los roles, sin multiplicar por acompañantes; el seed solo trae Cerveza y Comida, el resto
-  los crea el admin para venta extra); al pagar el total NO se aparta stock:
+  cubre la inscripción y luego al acompañante). Combo desde la config
+  (`combo_cerveza` + `combo_comida`, solo admin, default 3+1) multiplicado
+  por personas (1 + acompañantes registrados); la entrega exige pago total.
+  El seed solo trae Cerveza y Comida (el resto los crea el admin para venta
+  extra). Al pagar el total NO se aparta stock:
   la entrega descuenta disponible al momento hasta el tope. Columnas legacy
   (`combo_reservado`, `cantidad_reservada`) sin escritura.
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y

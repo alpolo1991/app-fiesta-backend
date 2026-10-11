@@ -94,22 +94,24 @@ function productosCombo() {
 }
 
 /**
- * Estado del combo: total FIJO por usuario desde la config
- * (`combo_cerveza` + `combo_comida`, solo admin), sin multiplicar por
- * acompañantes. Entregado = suma de entregas tipo combo por producto.
- * Sin productos Cerveza/Comida definidos, respeta el flag legacy.
+ * Estado del combo: base de la config (`combo_cerveza` + `combo_comida`,
+ * solo admin) multiplicada por personas (1 + acompañantes registrados,
+ * pagados o no). La entrega sigue exigiendo pago total. Entregado = suma
+ * de entregas tipo combo por producto. Sin Cerveza/Comida definidos,
+ * respeta el flag legacy.
  */
 function comboEstado(usuarioId) {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuarioId);
   if (!u) return null;
-  const persons = 1;
+  const persons = u.rol === 'usuario' ? 1 + acompanantesDe(usuarioId).cantidad : 1;
   const defs = [
-    { patron: '%cerveza%', requerido: comboCerveza() },
-    { patron: '%comida%', requerido: comboComida() },
+    { patron: '%cerveza%', base: comboCerveza() },
+    { patron: '%comida%', base: comboComida() },
   ];
   const items = [];
   defs.forEach((d) => {
-    if (d.requerido <= 0) return;
+    const requerido = d.base * persons;
+    if (requerido <= 0) return;
     const p = db
       .prepare(`SELECT id, producto, categoria FROM inventario WHERE LOWER(producto) LIKE ? ORDER BY id LIMIT 1`)
       .get(d.patron);
@@ -122,29 +124,41 @@ function comboEstado(usuarioId) {
       inventario_id: p.id,
       producto: p.producto,
       categoria: p.categoria,
-      base: d.requerido,
-      requerido: d.requerido,
+      base: d.base,
+      requerido,
       entregado,
-      faltante: Math.max(0, d.requerido - entregado),
+      faltante: Math.max(0, requerido - entregado),
     });
   });
   const completado = items.length ? items.every((i) => i.faltante === 0) : !!u.combo_completado;
+  // Desglose: lo de 1 persona (cliente) vs lo de acompañantes.
+  // Las entregas son una sola bolsa: si lo base está completo, lo que falta
+  // es del acompañante; si nadie reclamó, se muestra el total.
+  const baseCompleto = items.length ? items.every((i) => i.entregado >= Number(i.base || 0)) : false;
   const entregadoTotal = items.reduce((acc, i) => acc + i.entregado, 0);
   const requeridoTotal = items.reduce((acc, i) => acc + i.requerido, 0);
   const cliente = !items.length
     ? 'pendiente'
-    : completado
+    : baseCompleto
       ? 'completado'
       : entregadoTotal > 0
         ? 'parcial'
         : 'pendiente';
+  const acompanantes =
+    persons > 1
+      ? {
+          personas: persons - 1,
+          estado: completado ? 'completado' : baseCompleto ? 'pendiente' : 'en espera',
+          faltan: items.reduce((acc, i) => acc + i.faltante, 0),
+        }
+      : null;
   return {
     persons,
     items,
     completado,
     reservado: !!u.combo_reservado,
     cliente,
-    acompanantes: null,
+    acompanantes,
     entregadoTotal,
     requeridoTotal,
   };

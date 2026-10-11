@@ -45,7 +45,9 @@ function estadoPorMontos(montoAbonado, saldoPendiente) {
 function refrescarEstadoPago(usuarioId) {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuarioId);
   if (!u) return null;
-  const estado = estadoPorMontos(u.monto_abonado, u.saldo_pendiente);
+  let estado = estadoPorMontos(u.monto_abonado, u.saldo_pendiente);
+  // Con reporte pendiente no hay 'pagado': lo no verificado no entrega combo.
+  if (estado === 'pagado' && Number(u.monto_pendiente || 0) > 0) estado = 'abonado';
   db.prepare('UPDATE usuarios SET estado_pago = ? WHERE id = ?').run(estado, usuarioId);
   return db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuarioId);
 }

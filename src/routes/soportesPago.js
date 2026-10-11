@@ -1,6 +1,7 @@
 /**
  * /api/soportes-pago
- * - POST /                     → usuario sube soporte (multipart jpg/png/webp, tamaño configurable 0.5–3 MB)
+ * - POST /                     → usuario sube soporte (multipart jpg/png/webp, tamaño configurable 0.5–3 MB).
+ *   Suma a pendiente de una vez (revierte al rechazar; al aprobar pasa a abonado).
  * - GET  /mios                 → usuario: sus soportes
  * - GET  /                     → admin/mod: pendientes (o ?estado=todas)
  * - PUT  /:id/aprobar          → admin/mod: actualiza saldo y registra movimiento en Caja Inscripción
@@ -16,7 +17,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
-const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, reservarCombo, dineroCol, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
+const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, reservarCombo, dineroCol, totalCupo, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
 const { NUBE, UPLOAD_DIR, subirANube, urlDeNube, borrarDeNube, borrarLocal } = require('../storage');
 
 const router = express.Router();
@@ -138,10 +139,18 @@ router.post(
       )
       .run(usuario.id, archivo, montoFinal, tipo);
 
+    // Lo pendiente suma de una vez (revierte si se rechaza).
+    db.prepare(
+      `UPDATE usuarios SET saldo_pendiente = MAX(0, saldo_pendiente - ?),
+       monto_pendiente = monto_pendiente + ? WHERE id = ?`
+    ).run(montoFinal, montoFinal, usuario.id);
+    const dueno = refrescarEstadoPago(usuario.id);
+
     const soporte = db.prepare('SELECT * FROM soportes_pago WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({
       mensaje: 'Soporte enviado. Quedará pendiente de validación por el admin o moderador.',
       soporte,
+      usuario: usuarioPublico(dueno),
     });
   })
 );
@@ -301,10 +310,12 @@ router.put(
     if (soporte.usuario_id === req.user.id) {
       return res.status(403).json({ mensaje: 'No puedes aprobar tu propio soporte.' });
     }
-    // Revalida contra el saldo actual (pudo cambiar desde la subida).
-    if (soporte.monto_reportado > Number(usuario.saldo_pendiente)) {
+    // Revalida contra la capacidad total (pudo cambiar desde la subida por
+    // otros movimientos; lo propio ya descontó al subirlo, no cuenta doble).
+    const capacidad = Math.max(0, totalCupo(usuario) - Number(usuario.monto_abonado || 0));
+    if (soporte.monto_reportado > capacidad) {
       return res.status(400).json({
-        mensaje: `El soporte supera el saldo actual (${dineroCol(usuario.saldo_pendiente)}). Recházalo o pide uno nuevo.`,
+        mensaje: `El soporte supera el saldo actual (${dineroCol(capacidad)}). Recházalo o pide uno nuevo.`,
       });
     }
 
@@ -315,10 +326,10 @@ router.put(
          comentario_revision = ? WHERE id = ?`
       ).run(req.user.id, comentario, id);
 
-      // 2) Actualizar montos del usuario
+      // 2) Actualizar montos del usuario (el saldo ya se descontó al subirlo)
       db.prepare(
         `UPDATE usuarios SET monto_abonado = monto_abonado + ?,
-         saldo_pendiente = MAX(0, saldo_pendiente - ?), pago_validado = 1 WHERE id = ?`
+         monto_pendiente = MAX(0, monto_pendiente - ?), pago_validado = 1 WHERE id = ?`
       ).run(soporte.monto_reportado, soporte.monto_reportado, usuario.id);
       refrescarEstadoPago(usuario.id);
       // 2b) Al pagar el total se reserva su combo en inventario (sin frenar dinero).
@@ -371,6 +382,12 @@ router.put(
       `UPDATE soportes_pago SET estado = 'rechazado', revisado_por = ?, revisado_en = CURRENT_TIMESTAMP,
        comentario_revision = ? WHERE id = ?`
     ).run(req.user.id, comentario, id);
+    // Al rechazar se revierte lo sumado al subirlo.
+    db.prepare(
+      `UPDATE usuarios SET monto_pendiente = MAX(0, monto_pendiente - ?),
+       saldo_pendiente = saldo_pendiente + ? WHERE id = ?`
+    ).run(soporte.monto_reportado, soporte.monto_reportado, soporte.usuario_id);
+    refrescarEstadoPago(soporte.usuario_id);
 
     res.json({
       mensaje: 'Soporte rechazado. El usuario puede subirlo nuevamente.',

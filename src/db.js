@@ -66,7 +66,27 @@ migrarColumna('cuentas_pago', 'qr', 'TEXT');
 migrarColumna('inventario', 'cantidad_reservada', 'INTEGER NOT NULL DEFAULT 0');
 migrarColumna('inventario', 'combo_por_persona', 'INTEGER NOT NULL DEFAULT 0');
 migrarColumna('usuarios', 'combo_reservado', 'INTEGER NOT NULL DEFAULT 0');
+migrarColumna('usuarios', 'monto_pendiente', 'REAL NOT NULL DEFAULT 0');
 
+// Pendientes que ya sumaban: integra lo reportado pendiente al saldo.
+// Por cada usuario: pendiente = suma de soportes pendientes;
+// saldo = saldo - pendiente (sin negativo); estado sin 'pagado' con pendiente.
+try {
+  const ids = db.prepare('SELECT id FROM usuarios').all().map((r) => r.id);
+  const sumPend = db.prepare("SELECT COALESCE(SUM(monto_reportado), 0) AS p FROM soportes_pago WHERE usuario_id = ? AND estado = 'pendiente'");
+  const upd = db.prepare('UPDATE usuarios SET monto_pendiente = ?, saldo_pendiente = ?, estado_pago = ? WHERE id = ?');
+  ids.forEach((uid) => {
+    const u = db.prepare('SELECT monto_abonado, saldo_pendiente, monto_pendiente FROM usuarios WHERE id = ?').get(uid);
+    if (!u || Number(u.monto_pendiente || 0) > 0) return;
+    const p = Number(sumPend.get(uid).p || 0);
+    if (p <= 0) return;
+    const saldo = Math.max(0, Number(u.saldo_pendiente || 0) - p);
+    const estado = !Number(u.monto_abonado) ? 'no_pago' : 'abonado';
+    upd.run(p, saldo, estado, uid);
+  });
+} catch (e) {
+  /* tabla recién creada, nada que migrar */
+}
 // UUID único por usuario (generado por el backend, solo lectura).
 // En BDs anteriores se agrega y se rellena una sola vez.
 migrarColumna('usuarios', 'uuid', 'TEXT');

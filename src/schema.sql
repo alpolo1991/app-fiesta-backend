@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   estado_pago               TEXT NOT NULL DEFAULT 'no_pago',      -- 'no_pago' | 'abonado' | 'pagado'
   monto_abonado             REAL NOT NULL DEFAULT 0,
   saldo_pendiente           REAL NOT NULL DEFAULT 50000,
+  monto_pendiente           REAL NOT NULL DEFAULT 0,                 -- reportado pendiente de validación (suma, revierte al rechazar)
   pago_validado             INTEGER NOT NULL DEFAULT 0,
   combo_cervezas_asignadas  INTEGER NOT NULL DEFAULT 3,
   combo_comidas_asignadas   INTEGER NOT NULL DEFAULT 1,

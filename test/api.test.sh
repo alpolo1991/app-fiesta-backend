@@ -290,6 +290,21 @@ check "monto sobre saldo del dueño → 400" "supera" "$(curl -s -X POST -H "Aut
 check "usuario inexistente → 400" "no encontrado" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=999999" $API/soportes-pago | tr '[:upper:]' '[:lower:]')"
 check "para staff → 400" "solo se suben" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" -F "usuario_id=2" $API/soportes-pago | tr '[:upper:]' '[:lower:]')"
 
+echo "=== 13d. Pendiente suma, aprueba mantiene, rechaza revierte ==="
+REG_PV=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Pend Validator","cedula":"888777666","email":"pendval@e2e.com","password":"secret123","whatsapp":"3008887776"}')
+TOKEN_PV=$(echo "$REG_PV" | json "d['token']")
+UP_PV=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_PV" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=20000" -F "tipo=abono" $API/soportes-pago)
+check "subir suma a pendiente y baja saldo" '"monto_pendiente": 20000' "$(echo "$UP_PV" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+check "subir deja saldo 30000" '"saldo_pendiente": 30000' "$(echo "$UP_PV" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+SID_PV=$(echo "$UP_PV" | json "d['soporte']['id']")
+AP_PV=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' $API/soportes-pago/$SID_PV/aprobar)
+check "aprobar pasa a abonado" '"monto_abonado": 20000' "$(echo "$AP_PV" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+check "aprobar limpia pendiente" '"monto_pendiente": 0' "$(echo "$AP_PV" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+UP_PV2=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_PV" -F "archivo=@$TMP/soporte.png;type=image/png" -F "monto=1" -F "tipo=pago_total" $API/soportes-pago)
+check "total pendiente no marca pagado" '"estado_pago": "abonado"' "$(echo "$UP_PV2" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
+SID_PV2=$(echo "$UP_PV2" | json "d['soporte']['id']")
+check "rechazar revierte saldo" '"saldo_pendiente": 30000' "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"comentario":"foto borrosa"}' $API/soportes-pago/$SID_PV2/rechazar >/dev/null; curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['email']=='pendval@e2e.com'][0]))")"
+
 echo "=== 14. Configuración y dashboard ==="
 check "admin edita config" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"3133506369"}' $API/configuracion/whatsapp_admin)"
 check "config trae contacto admin/mod" '"nombre_admin"' "$(curl -s $API/configuracion)"

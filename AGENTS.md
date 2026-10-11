@@ -64,6 +64,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   auto-aprobación; rechazar exige `comentario`.
 - Subir soporte acepta `usuario_id` (solo staff, solo rol usuario): queda
   `pendiente` igual que si lo subiera él; resto del flujo sin cambios.
+- Pendientes suman (`monto_pendiente`, baja saldo; revierte al rechazar; al
+  aprobar pasa a abonado sin mover saldo). Sin `pagado` con pendiente (no
+  abre combo). Caja solo al aprobar. PUT manual con pendientes a criterio.
 - Ventas (`/:id/salida`, admin/mod) acreditan **Caja Bebidas**; ingresos
   (`/:id/ingreso`) y **ajustes** (`/:id/ajuste`, motivo obligatorio) solo admin.
 - **Imágenes**: `tamano_max_imagen_mb` (solo admin, hasta 3 MB, default 1);

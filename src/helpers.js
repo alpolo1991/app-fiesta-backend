@@ -60,6 +60,30 @@ function personasCombo(usuarioId) {
   return 1 + acompanantesPagados(usuarioId, u.monto_abonado).pagados;
 }
 
+/** Cantidad de cervezas del combo (configurable por admin, default 4). */
+function comboCerveza() {
+  try {
+    const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'combo_cerveza'").get();
+    const n = Number(fila && fila.valor);
+    if (Number.isInteger(n) && n >= 0 && n <= 100) return n;
+  } catch (e) {
+    /* tabla aún no creada */
+  }
+  return 4;
+}
+
+/** Cantidad de comidas del combo (configurable por admin, default 1). */
+function comboComida() {
+  try {
+    const fila = db.prepare("SELECT valor FROM configuracion WHERE clave = 'combo_comida'").get();
+    const n = Number(fila && fila.valor);
+    if (Number.isInteger(n) && n >= 0 && n <= 100) return n;
+  } catch (e) {
+    /* tabla aún no creada */
+  }
+  return 1;
+}
+
 /** Productos que forman el combo (combo_por_persona > 0). */
 function productosCombo() {
   return db
@@ -68,60 +92,57 @@ function productosCombo() {
 }
 
 /**
- * Estado del combo por producto: requerido = por_persona × personas,
- * entregado = suma de entregas tipo combo. Sin productos combo definidos,
- * respeta el flag legacy combo_completado.
+ * Estado del combo: total FIJO por usuario desde la config
+ * (`combo_cerveza` + `combo_comida`, solo admin), sin multiplicar por
+ * acompañantes. Entregado = suma de entregas tipo combo por producto.
+ * Sin productos Cerveza/Comida definidos, respeta el flag legacy.
  */
 function comboEstado(usuarioId) {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuarioId);
   if (!u) return null;
-  const persons = personasCombo(usuarioId);
-  const prods = productosCombo();
-  const items = prods.map((p) => {
-    const requerido = Number(p.combo_por_persona) * persons;
+  const persons = 1;
+  const defs = [
+    { patron: '%cerveza%', requerido: comboCerveza() },
+    { patron: '%comida%', requerido: comboComida() },
+  ];
+  const items = [];
+  defs.forEach((d) => {
+    if (d.requerido <= 0) return;
+    const p = db
+      .prepare(`SELECT id, producto, categoria FROM inventario WHERE LOWER(producto) LIKE ? ORDER BY id LIMIT 1`)
+      .get(d.patron);
+    if (!p) return;
     const fila = db
       .prepare(`SELECT COALESCE(SUM(cantidad), 0) AS n FROM entregas_usuario WHERE usuario_id = ? AND inventario_id = ? AND tipo = 'combo'`)
       .get(usuarioId, p.id);
     const entregado = Number(fila.n || 0);
-    return {
+    items.push({
       inventario_id: p.id,
       producto: p.producto,
       categoria: p.categoria,
-      base: Number(p.combo_por_persona),
-      requerido,
+      base: d.requerido,
+      requerido: d.requerido,
       entregado,
-      faltante: Math.max(0, requerido - entregado),
-    };
+      faltante: Math.max(0, d.requerido - entregado),
+    });
   });
   const completado = items.length ? items.every((i) => i.faltante === 0) : !!u.combo_completado;
-  // Desglose por grupo: lo del cliente (1 persona) vs lo de acompañantes.
-  // Las entregas son una sola bolsa: si lo base está completo, lo que falta
-  // es del acompañante; si nadie reclamó, se muestra el total.
-  const baseCompleto = items.length ? items.every((i) => i.entregado >= Number(i.base || 0)) : false;
   const entregadoTotal = items.reduce((acc, i) => acc + i.entregado, 0);
   const requeridoTotal = items.reduce((acc, i) => acc + i.requerido, 0);
   const cliente = !items.length
     ? 'pendiente'
-    : baseCompleto
+    : completado
       ? 'completado'
       : entregadoTotal > 0
         ? 'parcial'
         : 'pendiente';
-  const acompanantes =
-    persons > 1
-      ? {
-          personas: persons - 1,
-          estado: completado ? 'completado' : baseCompleto ? 'pendiente' : 'en espera',
-          faltan: items.reduce((acc, i) => acc + i.faltante, 0),
-        }
-      : null;
   return {
     persons,
     items,
     completado,
     reservado: !!u.combo_reservado,
     cliente,
-    acompanantes,
+    acompanantes: null,
     entregadoTotal,
     requeridoTotal,
   };
@@ -349,6 +370,8 @@ module.exports = {
   refrescarEstadoPago,
   personasCombo,
   productosCombo,
+  comboCerveza,
+  comboComida,
   comboEstado,
   reservarCombo,
   cajaPorTipo,

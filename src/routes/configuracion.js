@@ -196,6 +196,14 @@ router.put(
         const n = Number(s);
         return !isNaN(n) && n > 0 && n <= 3 ? null : 'El tamaño debe ser mayor a 0 y hasta 3 MB.';
       },
+      combo_cerveza: (s) => {
+        const n = Number(s);
+        return Number.isInteger(n) && n >= 0 && n <= 100 ? null : 'La cantidad debe ser un entero entre 0 y 100.';
+      },
+      combo_comida: (s) => {
+        const n = Number(s);
+        return Number.isInteger(n) && n >= 0 && n <= 100 ? null : 'La cantidad debe ser un entero entre 0 y 100.';
+      },
       nombre_evento: (s) => (s.trim() && s.trim().length <= 120 ? null : 'El nombre del evento es obligatorio (máx 120).'),
       lugar_evento: (s) => (s.trim().length <= 120 ? null : 'El lugar no puede superar 120 caracteres.'),
       direccion_evento: (s) => (s.trim().length <= 120 ? null : 'La dirección no puede superar 120 caracteres.'),

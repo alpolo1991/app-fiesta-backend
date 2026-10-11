@@ -147,6 +147,12 @@ check "fecha abono inválida → 400" "YYYY-MM-DD" "$(curl -s -X PUT -H "Authori
 check "fecha límite válida → 200" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"2026-12-01"}' $API/configuracion/fecha_limite_pago | tr '[:upper:]' '[:lower:]')"
 check "dirección válida → 200" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"Calle 10 #5-20, Salón Principal"}' $API/configuracion/direccion_evento | tr '[:upper:]' '[:lower:]')"
 
+echo "=== 14c. Combo fijo configurable (solo admin) ==="
+check "combo_cerveza abc → 400" "entero entre 0 y 100" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"abc"}' $API/configuracion/combo_cerveza)"
+check "combo_comida 101 → 400" "entero entre 0 y 100" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"101"}' $API/configuracion/combo_comida)"
+check "mod NO edita combo → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d '{"valor":"6"}' $API/configuracion/combo_cerveza)"
+check "admin fija 6 cervezas" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"6"}' $API/configuracion/combo_cerveza | tr '[:upper:]' '[:lower:]')"
+
 echo "=== 14b. Póster del evento (solo admin) ==="
 check "sin póster → 404" "404" "$(curl -s -o /dev/null -w '%{http_code}' $API/configuracion/poster)"
 check "mod NO sube póster → 403" "403" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Bearer $TOKEN_MOD" -F "archivo=@$TMP/soporte.png;type=image/png" $API/configuracion/poster)"
@@ -199,6 +205,8 @@ AB=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: a
 check "abono → estado abonado" '"estado_pago": "abonado"' "$(echo "$AB" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"
 AB2=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":40000}' $API/usuarios/$E2E_ID/abono)
 check "abono que supera saldo → 400" "supera" "$AB2"
+check "requerido sube a 6 (fijo)" '"requerido": 6' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/entregas/usuario/$E2E_ID | python3 -c "import sys,json;print(json.dumps([i for i in json.load(sys.stdin)['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "admin restaura 4 cervezas" "actualizada" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"valor":"4"}' $API/configuracion/combo_cerveza | tr '[:upper:]' '[:lower:]')"
 
 echo "=== 11. Reset de contraseña ==="
 RST=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/$E2E_ID/reset-password)

@@ -59,11 +59,11 @@ echo "=== A5. Pago otorga combos (uno por cada pagado) ==="
 USER_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='acomp@e2e.com'][0])")
 AB1=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$USER_ID/abono)
 COMBO1=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$USER_ID)
-check "base cubierta, 0 acompañantes pagos → 1 persona" '"requerido": 4' "$(echo "$COMBO1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "base cubierta, 0 acompañantes pagos → 4 cervezas (fijo)" '"requerido": 4' "$(echo "$COMBO1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 AB2=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":50000}' $API/usuarios/$USER_ID/abono)
 COMBO2=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$USER_ID)
-check "1 pagado → 2 personas, 8 cervezas" '"requerido": 8' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
-check "1 pagado → 2 comidas" '"requerido": 2' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Comida'][0]))")"
+check "1 pagado → sigue 4 cervezas (fijo por usuario)" '"requerido": 4' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
+check "1 pagado → 1 comida (fijo)" '"requerido": 1' "$(echo "$COMBO2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Comida'][0]))")"
 check "flag pagado en lista" '"pagado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_USER" $API/acompanantes/mios | tr -d ' ')"
 
 echo "=== A5b. Recién agregado tras pagar base NO queda pagado (admin) ==="

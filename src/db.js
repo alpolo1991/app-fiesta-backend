@@ -161,6 +161,8 @@ const CONFIG_DEFAULTS = {
   fecha_abono: '',
   fecha_limite_pago: '',
   direccion_evento: '',
+  combo_cerveza: '4',
+  combo_comida: '1',
 };
 try {
   const ins = db.prepare(
@@ -197,18 +199,9 @@ try {
   /* tabla recién creada, nada que migrar */
 }
 
-// El combo de cada acompañante (+4 cervezas, +1 comida) se otorga solo cuando
-// el usuario ya pagó su parte (abonado acumulado cubre sus montos, en orden).
-// Nivela una sola vez las filas que ya cumplen la condición (solo aumenta).
+// Columnas legacy del combo: se nivelan al combo fijo vigente (4+1).
+// Nivela una sola vez (solo aumenta, nunca baja lo ya asignado).
 try {
-  const baseInscripcion = (() => {
-    try {
-      const f = db.prepare("SELECT valor FROM configuracion WHERE clave = 'monto_inscripcion'").get();
-      const n = Number(f && f.valor);
-      if (!isNaN(n) && n > 0) return Math.round(n);
-    } catch (e) { /* tabla aún no creada */ }
-    return 50000;
-  })();
   const usuarios = db
     .prepare(
       `SELECT u.id, u.monto_abonado, u.combo_cervezas_asignadas, u.combo_comidas_asignadas,
@@ -217,26 +210,12 @@ try {
        FROM usuarios u WHERE u.rol = 'usuario' AND EXISTS (SELECT 1 FROM acompanantes a WHERE a.usuario_id = u.id)`
     )
     .all();
-  const pagadosDe = (uid, abonado) => {
-    const filas = db.prepare('SELECT monto FROM acompanantes WHERE usuario_id = ? ORDER BY id').all(uid);
-    const disponible = Math.max(0, Number(abonado || 0) - baseInscripcion); // base primero
-    let cubierto = 0;
-    let k = 0;
-    for (const f of filas) {
-      if (disponible >= cubierto + Number(f.monto)) {
-        cubierto += Number(f.monto);
-        k += 1;
-      } else break;
-    }
-    return k;
-  };
   const upd = db.prepare(
     `UPDATE usuarios SET combo_cervezas_asignadas = ?, combo_comidas_asignadas = ? WHERE id = ?`
   );
   usuarios.forEach((u) => {
-    const k = pagadosDe(u.id, u.monto_abonado);
-    const objCerv = 4 + 4 * k;
-    const objCom = 1 + 1 * k;
+    const objCerv = 4;
+    const objCom = 1;
     if (objCerv > Number(u.combo_cervezas_asignadas) || objCom > Number(u.combo_comidas_asignadas)) {
       upd.run(
         Math.max(objCerv, Number(u.combo_cervezas_asignadas)),
@@ -250,6 +229,7 @@ try {
 }
 
 // Reserva el combo de usuarios ya pagados y del staff (una sola vez).
+// Combo fijo desde la config (sin multiplicar): Cerveza + Comida.
 // Nunca frena nada: reserva lo disponible y marca solo si queda completo.
 try {
   const pendientes = db
@@ -258,33 +238,33 @@ try {
        WHERE combo_reservado = 0 AND (estado_pago = 'pagado' OR rol IN ('admin', 'moderador'))`
     )
     .all();
-  const comboProds = db.prepare('SELECT id, producto, combo_por_persona FROM inventario WHERE combo_por_persona > 0 ORDER BY id').all();
-  const baseInscripcion2 = (() => {
+  const leerCombo = (clave, defecto) => {
     try {
-      const f = db.prepare("SELECT valor FROM configuracion WHERE clave = 'monto_inscripcion'").get();
+      const f = db.prepare('SELECT valor FROM configuracion WHERE clave = ?').get(clave);
       const n = Number(f && f.valor);
-      if (!isNaN(n) && n > 0) return Math.round(n);
+      if (Number.isInteger(n) && n >= 0 && n <= 100) return n;
     } catch (e) { /* tabla aún no creada */ }
-    return 50000;
-  })();
-  const pagadosDe = (uid, abonado) => {
-    const filas = db.prepare('SELECT monto FROM acompanantes WHERE usuario_id = ? ORDER BY id').all(uid);
-    const disponible = Math.max(0, Number(abonado || 0) - baseInscripcion2); // base primero
-    let cubierto = 0;
-    let k = 0;
-    for (const f of filas) {
-      if (disponible >= cubierto + Number(f.monto)) {
-        cubierto += Number(f.monto);
-        k += 1;
-      } else break;
-    }
-    return k;
+    return defecto;
   };
+  // Combo fijo (sin multiplicar por acompañantes): Cerveza + Comida.
+  const comboFijo = [
+    { patron: '%cerveza%', requerido: leerCombo('combo_cerveza', 4) },
+    { patron: '%comida%', requerido: leerCombo('combo_comida', 1) },
+  ]
+    .map((d) => {
+      try {
+        const p = db.prepare('SELECT id, producto FROM inventario WHERE LOWER(producto) LIKE ? ORDER BY id LIMIT 1').get(d.patron);
+        return p ? { ...p, requerido: d.requerido } : null;
+      } catch (e) {
+        return null;
+      }
+    })
+    .filter(Boolean);
   const reservar = db.transaction((u) => {
-    const persons = u.rol === 'usuario' ? 1 + pagadosDe(u.id, u.monto_abonado) : 1;
-    let completa = comboProds.length > 0;
-    comboProds.forEach((p) => {
-      const need = Number(p.combo_por_persona) * persons;
+    let completa = comboFijo.length > 0;
+    comboFijo.forEach((p) => {
+      const need = Number(p.requerido);
+      if (need <= 0) return;
       const disp = db.prepare('SELECT cantidad_disponible FROM inventario WHERE id = ?').get(p.id).cantidad_disponible;
       const toma = Math.max(0, Math.min(need, Number(disp || 0)));
       if (toma > 0) {

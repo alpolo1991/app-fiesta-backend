@@ -77,8 +77,8 @@ check "mod NO puede hacer ingresos (admin only)" "permisos" "$(curl -s -X POST -
 
 echo "=== 9. Movimientos y cajas ==="
 MOV=$(curl -s -H "Authorization: Bearer $TM" $API/inventario/movimientos)
-check "movimientos de salida registrados" '"tipo": "salida"' "$(echo "$MOV" | head -c 2000)"
-check "3 salidas de inventario" '"tipo": "salida", "cantidad": 3' "$(echo "$MOV" | head -c 2000)"
+check "movimientos de salida registrados" '"tipo": "salida"' "$(echo "$MOV" | head -c 8000)"
+check "3 salidas de inventario" '"tipo": "salida", "cantidad": 3' "$(echo "$MOV" | head -c 8000)"
 CB=$(curl -s -H "Authorization: Bearer $TM" $API/cajas/bebidas/movimientos)
 check "caja bebidas con movimientos Venta" "Venta" "$CB"
 CI=$(curl -s -H "Authorization: Bearer $TM" $API/cajas/inscripcion/movimientos)

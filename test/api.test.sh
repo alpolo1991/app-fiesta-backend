@@ -248,7 +248,7 @@ echo "=== 13. Inventario y entregas ==="
 INV=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
 CERV=$CERV_ID
 COM=$COM_ID
-check "ingreso de stock" '"cantidad_disponible": 301' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"cantidad":1,"motivo":"test"}' $API/inventario/$CERV/ingreso | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['producto']))")"
+check "ingreso de stock (291 tras reserva staff + 1)" '"cantidad_disponible": 292' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"cantidad":1,"motivo":"test"}' $API/inventario/$CERV/ingreso | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['producto']))")"
 check "combo bloqueado sin pago total (abonado)" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
 check "completar bloqueado sin pago total" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/entregas/$E2E_ID/completar)"
 check "pagar saldo restante → pagado" '"estado_pago": "pagado"' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":30000}' $API/usuarios/$E2E_ID/abono | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"

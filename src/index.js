@@ -18,6 +18,7 @@ const cors = require('cors');
 const config = require('./config');
 const db = require('./db'); // inicializa SQLite (efecto lateral)
 const { seed } = require('./seed');
+const { reservarFaltantes } = require('./helpers');
 
 // ---------- Rutas ----------
 const authRoutes = require('./routes/auth');
@@ -63,6 +64,12 @@ try {
   if (!sembro) {
     const n = db.prepare('SELECT COUNT(*) AS n FROM usuarios').get().n;
     console.log(`ℹ️  Seed omitido: ya hay ${n} usuario(s), datos intactos.`);
+  }
+  // Reserva post-seed (V2): cubre al staff recién creado y a pagados sin
+  // reserva, que el bloque pre-seed no alcanza en BDs frescas.
+  const falt = reservarFaltantes();
+  if (falt.revisados > 0) {
+    console.log(`📦 Reserva V2: ${falt.reservados}/${falt.revisados} combos reservados.`);
   }
 } catch (e) {
   console.error('Error en el seed:', e.message);

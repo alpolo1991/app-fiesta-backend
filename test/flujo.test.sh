@@ -72,8 +72,8 @@ check "admin aprueba total user1 → pagado" '"estado_pago":"pagado"' "$APR2"
 COMBOF2=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$UID1)
 check "1 acompañante pagado → sigue 3 cervezas (fijo)" '"requerido": 3' "$(echo "$COMBOF2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 INV_R=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
-check "al pagar total se reserva stock (297 disp, 3 res)" '"cantidad_disponible": 297' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
-check "reserva registrada en movimientos" '"tipo":"reserva"' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario/movimientos | head -c 3000 | tr -d ' ')"
+check "sin reserva: disponible intacto (300)" '"cantidad_disponible": 300' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
+check "sin movimientos de reserva" "sin-reserva" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario/movimientos | head -c 3000 | tr -d ' ' | grep -c '"tipo":"reserva"' | sed 's/^0$/sin-reserva/')"
 check "revisor registrado" 'revisado_por_nombre' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/soportes-pago?estado=todas&usuario_id=$UID1")"
 S3=$(curl -s -X POST -H "Authorization: Bearer $TU2" -F "archivo=@$TMP/s.png;type=image/png" -F "monto=1" -F "tipo=pago_total" $API/soportes-pago)
 S3_ID=$(echo "$S3" | json "d['soporte']['id']")

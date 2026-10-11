@@ -22,7 +22,7 @@ Express + better-sqlite3 + JWT + bcrypt + multer + Cloudinary
   `Seed omitido: ya hay N usuario(s), datos intactos` (nunca borra).
 - `src/storage.js` → soportes en Cloudinary (con vars) o disco local.
 - `src/index.js` → routers bajo `/api`, CORS por lista, `trust proxy`, SPA fallback.
-- `src/helpers.js` → `refrescarEstadoPago`, `reservarCombo`, `registrarMovimientoCaja`,
+- `src/helpers.js` → `refrescarEstadoPago`, `registrarMovimientoCaja`,
   `saldoCaja`, `usuarioPublico` (úsalo SIEMPRE al devolver usuarios).
 - `src/middleware/auth.js` → `authRequired` + `requireRole(...)`.
 
@@ -52,8 +52,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   cubre la inscripción y luego al acompañante). Combo FIJO por usuario desde
   la config (`combo_cerveza` + `combo_comida`, solo admin, default 3+1 para
   todos los roles, sin multiplicar por acompañantes; el seed solo trae Cerveza y Comida, el resto
-  los crea el admin para venta extra); al pagar el total se **reserva** (`reservarCombo()`,
-  nunca frena dinero). Columnas legacy solo por compatibilidad.
+  los crea el admin para venta extra); al pagar el total NO se aparta stock:
+  la entrega descuenta disponible al momento hasta el tope. Columnas legacy
+  (`combo_reservado`, `cantidad_reservada`) sin escritura.
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y
   `POST /entregas/:id/completar` exigen `estado_pago === 'pagado'` en rol
   usuario (staff exento); `venta_extra` no se bloquea. El completar solo

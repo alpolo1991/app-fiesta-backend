@@ -249,67 +249,8 @@ try {
 }
 
 // Reserva el combo de usuarios ya pagados y del staff (una sola vez).
-// Combo fijo desde la config (sin multiplicar): Cerveza + Comida.
-// Nunca frena nada: reserva lo disponible y marca solo si queda completo.
-try {
-  const pendientes = db
-    .prepare(
-      `SELECT id, nombre, rol, monto_abonado FROM usuarios
-       WHERE combo_reservado = 0 AND (estado_pago = 'pagado' OR rol IN ('admin', 'moderador'))`
-    )
-    .all();
-  const leerCombo = (clave, defecto) => {
-    try {
-      const f = db.prepare('SELECT valor FROM configuracion WHERE clave = ?').get(clave);
-      const n = Number(f && f.valor);
-      if (Number.isInteger(n) && n >= 0 && n <= 100) return n;
-    } catch (e) { /* tabla aún no creada */ }
-    return defecto;
-  };
-  // Combo fijo (sin multiplicar por acompañantes): Cerveza + Comida.
-  const comboFijo = [
-    { patron: '%cerveza%', requerido: leerCombo('combo_cerveza', 3) },
-    { patron: '%comida%', requerido: leerCombo('combo_comida', 1) },
-  ]
-    .map((d) => {
-      try {
-        const p = db.prepare('SELECT id, producto FROM inventario WHERE LOWER(producto) LIKE ? ORDER BY id LIMIT 1').get(d.patron);
-        return p ? { ...p, requerido: d.requerido } : null;
-      } catch (e) {
-        return null;
-      }
-    })
-    .filter(Boolean);
-  const reservar = db.transaction((u) => {
-    let completa = comboFijo.length > 0;
-    comboFijo.forEach((p) => {
-      const need = Number(p.requerido);
-      if (need <= 0) return;
-      const disp = db.prepare('SELECT cantidad_disponible FROM inventario WHERE id = ?').get(p.id).cantidad_disponible;
-      const toma = Math.max(0, Math.min(need, Number(disp || 0)));
-      if (toma > 0) {
-        db.prepare(
-          `UPDATE inventario SET cantidad_disponible = cantidad_disponible - ?,
-           cantidad_reservada = cantidad_reservada + ? WHERE id = ?`
-        ).run(toma, toma, p.id);
-        db.prepare(
-          `INSERT INTO movimientos_inventario (inventario_id, usuario_id, tipo, cantidad, motivo)
-           VALUES (?, ?, 'reserva', ?, ?)`
-        ).run(p.id, u.id, toma, `Reserva combo - ${u.nombre}`);
-      }
-      if (toma < need) completa = false;
-    });
-    if (completa) db.prepare('UPDATE usuarios SET combo_reservado = 1 WHERE id = ?').run(u.id);
-  });
-  pendientes.forEach((u) => {
-    try {
-      reservar(u);
-    } catch (e) {
-      /* sigue con el siguiente */
-    }
-  });
-} catch (e) {
-  /* nada que migrar */
-}
+// Sin reserva de combos: la entrega descuenta disponible al momento y el
+// tope por producto lo pone la config (combo_cerveza/combo_comida).
+// Las columnas cantidad_reservada/combo_reservado quedan legacy sin escritura.
 
 module.exports = db;

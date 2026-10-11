@@ -274,7 +274,7 @@ router.post(
 
 /**
  * AJUSTE de stock (SOLO admin): fija el disponible (y opcionalmente el total)
- * con motivo obligatorio. Es para iniciar/corregir el stock según reservas;
+ * con motivo obligatorio. Es para iniciar/corregir el stock;
  * NO mueve cajas (no es venta). Queda en el historial como tipo 'ajuste'.
  */
 router.post(

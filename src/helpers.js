@@ -151,42 +151,6 @@ function comboEstado(usuarioId) {
 }
 
 /**
- * Reserva el stock del combo al pagarse el total (o al pasar a staff).
- * Descuenta disponible → reservada por producto y deja movimiento 'reserva'.
- * Nunca frena dinero: si falta stock, reserva lo que haya y reporta faltantes.
- * Solo marca combo_reservado cuando queda completo.
- */
-function reservarCombo(usuarioId) {
-  const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuarioId);
-  if (!u || u.combo_reservado) return { completa: !!u?.combo_reservado, faltantes: [] };
-  const est = comboEstado(usuarioId);
-  if (!est || !est.items.length) return { completa: false, faltantes: [] };
-
-  const faltantes = [];
-  const tx = db.transaction(() => {
-    est.items.forEach((it) => {
-      if (it.requerido <= 0) return;
-      const p = db.prepare('SELECT cantidad_disponible FROM inventario WHERE id = ?').get(it.inventario_id);
-      const toma = Math.max(0, Math.min(it.requerido, Number(p.cantidad_disponible || 0)));
-      if (toma > 0) {
-        db.prepare(
-          `UPDATE inventario SET cantidad_disponible = cantidad_disponible - ?,
-           cantidad_reservada = cantidad_reservada + ? WHERE id = ?`
-        ).run(toma, toma, it.inventario_id);
-        db.prepare(
-          `INSERT INTO movimientos_inventario (inventario_id, usuario_id, tipo, cantidad, motivo)
-           VALUES (?, ?, 'reserva', ?, ?)`
-        ).run(it.inventario_id, usuarioId, toma, `Reserva combo - ${u.nombre}`);
-      }
-      if (toma < it.requerido) faltantes.push({ producto: it.producto, faltan: it.requerido - toma });
-    });
-    if (!faltantes.length) db.prepare('UPDATE usuarios SET combo_reservado = 1 WHERE id = ?').run(usuarioId);
-  });
-  tx();
-  return { completa: !faltantes.length, faltantes };
-}
-
-/**
  * Busca la caja por tipo ('inscripcion' | 'bebidas').
  * Prefiere una caja abierta; si no hay, usa la última creada.
  */
@@ -375,7 +339,6 @@ module.exports = {
   comboCerveza,
   comboComida,
   comboEstado,
-  reservarCombo,
   cajaPorTipo,
   registrarMovimientoCaja,
   saldoCaja,

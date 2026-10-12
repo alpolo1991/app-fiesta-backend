@@ -20,7 +20,7 @@ check() { # check "descripcion" "esperado" "obtenido"
 json() { python3 -c "import sys,json;d=json.load(sys.stdin);print(eval(sys.argv[1],{'d':d}))" "$1" 2>/dev/null; }
 
 echo "=== F1. Elenco ==="
-TA=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
+TA=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com","password":"admin123"}' | json "d['token']")
 TOKEN_ADMIN=$TA
 TM=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 TOKEN_MOD=$TM
@@ -72,7 +72,7 @@ check "admin aprueba total user1 → pagado" '"estado_pago":"pagado"' "$APR2"
 COMBOF2=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/usuario/$UID1)
 check "1 acompañante pagado → sigue 6 cervezas (2 personas)" '"requerido": 6' "$(echo "$COMBOF2" | python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps([i for i in d['combo']['items'] if i['producto']=='Cerveza'][0]))")"
 INV_R=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
-check "al pagar total se reserva stock (285 disp: 9 staff + 6 user)" '"cantidad_disponible": 285' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
+check "al pagar total se reserva stock (195 disp: 9 staff + 6 user)" '"cantidad_disponible": 195' "$(echo "$INV_R" | python3 -c "import sys,json;print(json.dumps([p for p in json.load(sys.stdin)['productos'] if p['producto']=='Cerveza'][0]))")"
 check "reserva registrada en movimientos" '"tipo":"reserva"' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario/movimientos | head -c 3000 | tr -d ' ')"
 check "staff con reserva al arrancar (V2)" '"combo_reservado":true' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/entregas/pendientes | python3 -c "import sys,json;print(json.dumps([u for u in json.load(sys.stdin) if u['rol']=='admin'][0]))" | tr -d ' ')"
 check "revisor registrado" 'revisado_por_nombre' "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$API/soportes-pago?estado=todas&usuario_id=$UID1")"
@@ -86,8 +86,8 @@ echo "=== F4. Persistencia cruzada: caja, KPIs, CSV, ficha ==="
 CI=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/cajas/inscripcion/movimientos)
 check "caja inscripción = 100000+100000" '"saldo":200000' "$CI"
 RES=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/dashboard/resumen)
-check "personal = 3 usuarios + 2 acompañantes" '"total":5' "$RES"
-check "por cobrar = 50000 (usuario demo)" '"porCobrar":50000' "$RES"
+check "personal = 2 usuarios + 2 acompañantes" '"total":4' "$RES"
+check "por cobrar = 0 (sin demo)" '"porCobrar":0' "$RES"
 check "recaudado = 200000" '"recaudado":200000' "$RES"
 check "ganancias total = 200000" '"total": 200000' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"
 check "2 inscripciones confirmadas" '"inscripcionesConfirmadas": 2' "$(echo "$RES" | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['ganancias']))")"

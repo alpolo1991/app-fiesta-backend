@@ -24,7 +24,7 @@ check "GET /salud" '"ok":true' "$(curl -s $API/salud)"
 check "GET /configuracion tiene whatsapp_admin" 'whatsapp_admin' "$(curl -s $API/configuracion)"
 
 echo "=== 2. Login de los 3 roles (usuario se registra) ==="
-TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
+TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com","password":"admin123"}' | json "d['token']")
 TOKEN_MOD=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 REGU=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario E2E","cedula":"111222333","email":"usuario@e2e.com","password":"user123","whatsapp":"3001112223"}')
 TOKEN_USER=$(echo "$REGU" | json "d['token']")
@@ -32,7 +32,7 @@ UID_USER=$(echo "$REGU" | json "d['usuario']['id']")
 [ -n "$TOKEN_ADMIN" ] && check "login admin" "OK" "OK" || check "login admin" "token" "$TOKEN_ADMIN"
 [ -n "$TOKEN_MOD" ] && check "login moderador" "OK" "OK" || check "login moderador" "token" "$TOKEN_MOD"
 [ -n "$TOKEN_USER" ] && check "registro+login usuario" "OK" "OK" || check "registro+login usuario" "token" "$TOKEN_USER"
-check "login malo → 401" "Credenciales incorrectas" "$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"mala"}')"
+check "login malo → 401" "Credenciales incorrectas" "$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com","password":"mala"}')"
 
 echo "=== 2b. Inventario demo del seed (combo) ==="
 INV0=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
@@ -217,7 +217,7 @@ check "mod NO resetea a otro moderador" "solo puede resetear" "$(curl -s -X PUT 
 check "mod NO resetea al admin" "solo puede resetear" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/1/reset-password)"
 check "mod no ve al admin en lista" "sin-admin" "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios | python3 -c "import sys,json;print('hay-admin' if any(u['rol']=='admin' for u in json.load(sys.stdin)) else 'sin-admin')")"
 check "mod ve emails ajenos enmascarados" "mails-ok" "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios | python3 -c "import sys,json;us=json.load(sys.stdin);print('mails-ok' if all(u['email'] is None or u['email']=='roaruizedwinyesid@gmail.com' for u in us) else 'mails-mal')")"
-curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com"}' >/dev/null
+curl -s -X POST $API/auth/recuperar -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com"}' >/dev/null
 check "mod ve solicitud del admin" '"usuario_rol":"admin"' "$(curl -s -H "Authorization: Bearer $TOKEN_MOD" $API/recuperaciones | tr -d ' ')"
 RSTADM=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_MOD" $API/usuarios/1/reset-password)
 check "mod resetea admin solicitado → 200" '"password_temporal"' "$RSTADM"
@@ -248,7 +248,7 @@ echo "=== 13. Inventario y entregas ==="
 INV=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/inventario)
 CERV=$CERV_ID
 COM=$COM_ID
-check "ingreso de stock (291 tras reserva staff + 1)" '"cantidad_disponible": 292' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"cantidad":1,"motivo":"test"}' $API/inventario/$CERV/ingreso | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['producto']))")"
+check "ingreso de stock (201 tras reserva staff + 1)" '"cantidad_disponible": 202' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"cantidad":1,"motivo":"test"}' $API/inventario/$CERV/ingreso | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['producto']))")"
 check "combo bloqueado sin pago total (abonado)" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' -d "{\"usuario_id\":$E2E_ID,\"inventario_id\":$CERV,\"cantidad\":1,\"tipo\":\"combo\"}" $API/entregas)"
 check "completar bloqueado sin pago total" "no tiene el pago" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_MOD" -H 'Content-Type: application/json' $API/entregas/$E2E_ID/completar)"
 check "pagar saldo restante → pagado" '"estado_pago": "pagado"' "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H 'Content-Type: application/json' -d '{"monto":30000}' $API/usuarios/$E2E_ID/abono | python3 -c "import sys,json;print(json.dumps(json.load(sys.stdin)['usuario']))")"

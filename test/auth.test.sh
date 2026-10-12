@@ -51,7 +51,7 @@ check "mensaje existente" "Solicitud enviada" "$M1"
 [ "$M1" = "$M2" ] && check "mensajes idénticos" "OK" "OK" || check "mensajes idénticos" "iguales" "$M1 / $M2"
 
 echo "=== U5. Temporal + WhatsApp en perfil ==="
-TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
+TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com","password":"admin123"}' | json "d['token']")
 E2E_ID=$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios | python3 -c "import sys,json;print([u['id'] for u in json.load(sys.stdin) if u['email']=='auth@e2e.com'][0])")
 RST=$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" $API/usuarios/$E2E_ID/reset-password)
 check "reset devuelve whatsapp" '"whatsapp"' "$RST"

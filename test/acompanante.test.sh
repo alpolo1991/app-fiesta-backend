@@ -17,7 +17,7 @@ check() { # check "descripcion" "esperado" "obtenido"
 json() { python3 -c "import sys,json;d=json.load(sys.stdin);print(eval(sys.argv[1],{'d':d}))" "$1" 2>/dev/null; }
 
 echo "=== A1. Sesiones ==="
-TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@fiesta.com","password":"admin123"}' | json "d['token']")
+TOKEN_ADMIN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"alpolo1991@gmail.com","password":"admin123"}' | json "d['token']")
 TOKEN_MOD=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' -d '{"email":"roaruizedwinyesid@gmail.com","password":"roa123"}' | json "d['token']")
 REGU=$(curl -s -X POST $API/auth/registro -H 'Content-Type: application/json' -d '{"nombre":"Usuario Acomp","cedula":"444555666","email":"acomp@e2e.com","password":"user123","whatsapp":"3004445556"}')
 TOKEN_USER=$(echo "$REGU" | json "d['token']")

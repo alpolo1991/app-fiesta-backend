@@ -1,8 +1,8 @@
 /**
- * Seed inicial: admin, dos moderadores y un usuario demo (validaciones).
+ * Seed inicial: admin y dos moderadores (equipo).
  *   npm run seed   (también se ejecuta solo desde src/index.js)
  *
- * Crea: admin + 2 mods (sin cargo) + demo (cupo por pagar), cajas abiertas,
+ * Crea: admin + 2 mods (sin cargo), cajas abiertas,
  * cuentas de pago, configuración base, preguntas iniciales (catálogo) e
  * inventario demo del combo (cerveza ×3, comida ×1).
  */
@@ -21,14 +21,9 @@ function seed() {
       INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
     `);
-    insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'admin@fiesta.com', hash('admin123'), 'admin', '3133506369');
+    insertUsuario.run(crypto.randomUUID(), 'Administrador', '1000000001', 'alpolo1991@gmail.com', hash('admin123'), 'admin', '3133506369');
     insertUsuario.run(crypto.randomUUID(), 'Edwin Roa', '1000000004', 'roaruizedwinyesid@gmail.com', hash('roa123'), 'moderador', '3165362315');
     insertUsuario.run(crypto.randomUUID(), 'Isaac Fontalvo', '1000000005', 'isaac_1129@hotmail.com', hash('isaac123'), 'moderador', '3042246759');
-    // Usuario demo para validaciones (en producción se elimina desde Usuarios).
-    db.prepare(
-      `INSERT INTO usuarios (uuid, nombre, cedula, email, password_hash, rol, whatsapp, monto_abonado, saldo_pendiente)
-       VALUES (?, ?, ?, ?, ?, 'usuario', ?, 0, 50000)`
-    ).run(crypto.randomUUID(), 'Usuario Demo', '1000000003', 'demo@fiesta.com', hash('demo123'), '3133506369');
 
     // ---------- 2. Cajas (siempre abiertas al inicio) ----------
     const insertCaja = db.prepare('INSERT INTO cajas (tipo, descripcion, estado) VALUES (?, ?, ?)');
@@ -73,8 +68,8 @@ function seed() {
         `INSERT INTO movimientos_inventario (inventario_id, tipo, cantidad, motivo) VALUES (?, 'ingreso', ?, 'Stock inicial')`
       ).run(id, stock);
     };
-    invInicial('Cerveza', 'bebida', 300, 5000, 3);
-    invInicial('Comida', 'comida', 100, 15000, 1);
+    invInicial('Cerveza', 'bebida', 210, 5000, 3);
+    invInicial('Comida', 'comida', 70, 12000, 1);
     // Gaseosa/Torta no se crean: el admin registra lo vendible en Inventario.
 
     // ---------- 6. Preguntas iniciales de la encuesta (catálogo) ----------

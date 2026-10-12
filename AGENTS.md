@@ -53,9 +53,9 @@ En pruebas (`test/run.js`): `FIESTA_DB_PATH`, `FIESTA_UPLOADS_DIR`,
   (`combo_cerveza` + `combo_comida`, solo admin, default 3+1) multiplicado
   por personas (1 + acompañantes registrados); la entrega exige pago total.
   El seed solo trae Cerveza y Comida (el resto los crea el admin para venta
-  extra). Al pagar el total NO se aparta stock:
-  la entrega descuenta disponible al momento hasta el tope. Columnas legacy
-  (`combo_reservado`, `cantidad_reservada`) sin escritura.
+  extra). Reserva V2 post-seed (`reservarFaltantes()` en `index.js`, cubre
+  al staff en BDs frescas; nunca frena dinero). Columnas legacy solo por
+  compatibilidad. [rama exp/reserva-v2]
 - **Entregas estrictas**: `POST /entregas` tipo `combo` y
   `POST /entregas/:id/completar` exigen `estado_pago === 'pagado'` en rol
   usuario (staff exento); `venta_extra` no se bloquea. El completar solo

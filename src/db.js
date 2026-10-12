@@ -249,8 +249,7 @@ try {
 }
 
 // Reserva el combo de usuarios ya pagados y del staff (una sola vez).
-// Sin reserva de combos: la entrega descuenta disponible al momento y el
-// tope por producto lo pone la config (combo_cerveza/combo_comida).
-// Las columnas cantidad_reservada/combo_reservado quedan legacy sin escritura.
+// Sin reserva aquí: se centraliza en index.js post-seed (reservarFaltantes),
+// que cubre BDs frescas (staff recién creado) y existentes en cada arranque.
 
 module.exports = db;

@@ -12,6 +12,7 @@ const {
   montoInscripcion,
   ABONO_MINIMO,
   refrescarEstadoPago,
+  reservarCombo,
   acompanantesDe,
   comboEstado,
   registrarMovimientoCaja,
@@ -326,7 +327,8 @@ router.put(
 
     db.prepare('UPDATE usuarios SET monto_abonado = ?, saldo_pendiente = ? WHERE id = ?').run(abonado, saldo, id);
     const actualizado = refrescarEstadoPago(id);
-    res.json({ mensaje: 'Pago actualizado.', usuario: usuarioPublico(actualizado) });
+    const reserva = actualizado.estado_pago === 'pagado' ? reservarCombo(id) : null;
+    res.json({ mensaje: 'Pago actualizado.', usuario: usuarioPublico(actualizado), reserva });
   })
 );
 
@@ -388,8 +390,12 @@ router.post(
     });
     tx();
 
+    let reserva = null;
+    const trasAbono = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
+    if (trasAbono.estado_pago === 'pagado') reserva = reservarCombo(id);
+
     const actualizado = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
-    res.json({ mensaje: 'Abono registrado.', usuario: usuarioPublico(actualizado) });
+    res.json({ mensaje: 'Abono registrado.', usuario: usuarioPublico(actualizado), reserva });
   })
 );
 
@@ -456,6 +462,7 @@ router.put(
     } else {
       db.prepare('UPDATE usuarios SET saldo_pendiente = 0, monto_abonado = 0 WHERE id = ?').run(id);
       refrescarEstadoPago(id);
+      reservarCombo(id); // el staff también tiene combo (sin pagar suscripción)
     }
     res.json({ mensaje: `Rol actualizado a ${ROTULOS[rol]}.`, usuario: usuarioPublico({ ...usuario, rol }) });
   })

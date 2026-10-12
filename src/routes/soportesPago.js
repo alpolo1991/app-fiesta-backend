@@ -17,7 +17,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
-const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, dineroCol, totalCupo, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
+const { ah, ABONO_MINIMO, refrescarEstadoPago, registrarMovimientoCaja, usuarioPublico, reservarCombo, dineroCol, totalCupo, tamanoMaxImagenBytes, etiquetaTamanoMax, TAMANO_MAX_IMAGEN_MB_MAX } = require('../helpers');
 const { NUBE, UPLOAD_DIR, subirANube, urlDeNube, borrarDeNube, borrarLocal } = require('../storage');
 
 const router = express.Router();
@@ -332,6 +332,7 @@ router.put(
          monto_pendiente = MAX(0, monto_pendiente - ?), pago_validado = 1 WHERE id = ?`
       ).run(soporte.monto_reportado, soporte.monto_reportado, usuario.id);
       refrescarEstadoPago(usuario.id);
+      // V2: al pagar el total se reserva su combo (post-seed cubre al staff).
 
       // 3) Registrar el ingreso en la Caja de Inscripciones
       registrarMovimientoCaja({
@@ -348,11 +349,16 @@ router.put(
     });
     tx();
 
+    let reserva = null;
+    const trasPago = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuario.id);
+    if (trasPago.estado_pago === 'pagado') reserva = reservarCombo(usuario.id);
+
     const actualizado = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuario.id);
     res.json({
       mensaje: 'Soporte aprobado y pago actualizado.',
       soporte: db.prepare('SELECT * FROM soportes_pago WHERE id = ?').get(id),
       usuario: usuarioPublico(actualizado),
+      reserva,
     });
   })
 );
